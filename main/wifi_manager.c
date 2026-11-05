@@ -15,17 +15,29 @@ static esp_netif_t *s_sta_netif = NULL;
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        ESP_LOGI(TAG, "Wi-Fi station started, connecting to %s...", CONFIG_NTP_WIFI_SSID);
         esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {
+#if CONFIG_NTP_USE_STATIC_IP
+        s_connected = true;
+        strncpy(s_ip_str, CONFIG_NTP_STATIC_IP, sizeof(s_ip_str) - 1);
+        s_ip_str[sizeof(s_ip_str) - 1] = '\0';
+        ESP_LOGI(TAG, "Wi-Fi connected! Static IP: %s", s_ip_str);
+#else
+        ESP_LOGI(TAG, "Wi-Fi connected to AP, waiting for DHCP...");
+#endif
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        wifi_event_sta_disconnected_t *disconn = (wifi_event_sta_disconnected_t *)event_data;
         s_connected = false;
         s_ip_str[0] = '\0';
-        ESP_LOGW(TAG, "Wi-Fi disconnected, attempting to reconnect...");
+        ESP_LOGW(TAG, "Wi-Fi disconnected (reason %d), reconnecting...", disconn ? disconn->reason : 0);
+        vTaskDelay(pdMS_TO_TICKS(1000));
         esp_wifi_connect();
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         esp_ip4addr_ntoa(&event->ip_info.ip, s_ip_str, sizeof(s_ip_str));
         s_connected = true;
-        ESP_LOGI(TAG, "Wi-Fi connected! IP: %s", s_ip_str);
+        ESP_LOGI(TAG, "Wi-Fi Got IP: %s", s_ip_str);
     }
 }
 
