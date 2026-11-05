@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 
-static uint8_t hex_to_byte(char c) {
+uint8_t hex_to_byte(char c) {
     if (c >= '0' && c <= '9') {
         return c - '0';
     } else if (c >= 'A' && c <= 'F') {
