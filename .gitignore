@@ -2,3 +2,5 @@
 build/
 sdkconfig
 sdkconfig.old
+main/include/wifi_credentials.h
+tests/test_nmea

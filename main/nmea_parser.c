@@ -146,6 +146,13 @@ bool nmea_parse_zda(const char *sentence, nmea_time_t *out_time) {
     sscanf(field, "%02d", &month);
     out_time->month = (uint8_t)month;
 
+    if (!get_field(sentence, 4, field, sizeof(field))) {
+        return false;
+    }
+    int year = 0;
+    sscanf(field, "%04d", &year);
+    out_time->year = (uint16_t)year;
+
     out_time->fix_valid = true;
     return true;
 }

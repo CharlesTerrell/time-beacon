@@ -116,15 +116,20 @@ void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_t
 
 static void display_refresh_task(void *pvParameters) {
     (void)pvParameters;
+    uint32_t tick_count = 0;
     while (1) {
         if (gpio_get_level(PIN_USER_BTN) == 0) {
             s_last_activity_us = esp_timer_get_time();
-            display_set_backlight(true);
+            if (!s_backlight_on) {
+                display_set_backlight(true);
+                tick_count = 20; // Trigger immediate display refresh
+            }
         }
         if ((esp_timer_get_time() - s_last_activity_us) > 120000000LL) {
             display_set_backlight(false);
         }
-        if (s_backlight_on) {
+        if (s_backlight_on && ++tick_count >= 20) {
+            tick_count = 0;
             char ip[16] = "DISCONNECTED";
             wifi_manager_get_ip(ip, sizeof(ip));
 
@@ -142,7 +147,7 @@ static void display_refresh_task(void *pvParameters) {
             uint32_t packets = ntp_server_get_packet_count();
             display_update(ip, status.satellites, locked, utc_time, packets);
         }
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
