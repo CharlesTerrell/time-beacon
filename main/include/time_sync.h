@@ -36,6 +36,11 @@ void time_sync_update_gnss(const nmea_time_t *time_data, int64_t anchor_esp_time
 void time_sync_record_error(void);
 
 /**
+ * Update current satellite count. Thread-safe.
+ */
+void time_sync_update_sats(uint8_t satellites);
+
+/**
  * Copy current GNSS status snapshot into out_status. Thread-safe.
  * Returns true if GNSS currently has a valid active fix (lock < 5 seconds old).
  */

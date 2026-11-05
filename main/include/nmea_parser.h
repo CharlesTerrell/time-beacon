@@ -39,6 +39,12 @@ bool nmea_parse_rmc(const char *sentence, nmea_time_t *out_time);
  */
 bool nmea_parse_zda(const char *sentence, nmea_time_t *out_time);
 
+/**
+ * Parse $GNGGA / $GPGGA sentence to extract satellite count and fix quality.
+ * Returns true if valid GGA sentence.
+ */
+bool nmea_parse_gga(const char *sentence, uint8_t *out_sats, bool *out_fix_valid);
+
 #ifdef __cplusplus
 }
 #endif

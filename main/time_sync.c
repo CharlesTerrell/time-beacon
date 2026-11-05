@@ -58,6 +58,13 @@ void time_sync_record_error(void) {
     xSemaphoreGive(s_sync_mutex);
 }
 
+void time_sync_update_sats(uint8_t satellites) {
+    if (s_sync_mutex == NULL) return;
+    xSemaphoreTake(s_sync_mutex, portMAX_DELAY);
+    s_gnss_status.satellites = satellites;
+    xSemaphoreGive(s_sync_mutex);
+}
+
 bool time_sync_get_status(gnss_status_t *out_status) {
     if (out_status == NULL) {
         return false;

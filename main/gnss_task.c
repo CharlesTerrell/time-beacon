@@ -11,9 +11,11 @@
 static const char *TAG = "gnss_task";
 
 static void gnss_stream_task(void *pvParameters) {
+    (void)pvParameters;
     char line_buf[128];
     size_t idx = 0;
     int64_t anchor_us = 0;
+    int64_t last_log_us = 0;
     uint8_t byte;
 
     while (1) {
@@ -30,6 +32,11 @@ static void gnss_stream_task(void *pvParameters) {
             if (byte == '\r' || byte == '\n') {
                 line_buf[idx] = '\0';
                 if (nmea_verify_checksum(line_buf)) {
+                    if (esp_timer_get_time() - last_log_us > 3000000LL) {
+                        ESP_LOGI(TAG, "NMEA: %s", line_buf);
+                        last_log_us = esp_timer_get_time();
+                    }
+
                     nmea_time_t t;
                     if (strncmp(line_buf, "$GNRMC", 6) == 0 || strncmp(line_buf, "$GPRMC", 6) == 0) {
                         if (nmea_parse_rmc(line_buf, &t)) {
@@ -38,6 +45,12 @@ static void gnss_stream_task(void *pvParameters) {
                     } else if (strncmp(line_buf, "$GNZDA", 6) == 0 || strncmp(line_buf, "$GPZDA", 6) == 0) {
                         if (nmea_parse_zda(line_buf, &t)) {
                             time_sync_update_gnss(&t, anchor_us);
+                        }
+                    } else if (strncmp(line_buf, "$GNGGA", 6) == 0 || strncmp(line_buf, "$GPGGA", 6) == 0) {
+                        uint8_t sats = 0;
+                        bool gga_fix = false;
+                        if (nmea_parse_gga(line_buf, &sats, &gga_fix)) {
+                            time_sync_update_sats(sats);
                         }
                     }
                 } else {

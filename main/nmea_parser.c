@@ -146,13 +146,39 @@ bool nmea_parse_zda(const char *sentence, nmea_time_t *out_time) {
     sscanf(field, "%02d", &month);
     out_time->month = (uint8_t)month;
 
-    if (!get_field(sentence, 4, field, sizeof(field))) {
+    out_time->fix_valid = true;
+    return true;
+}
+
+bool nmea_parse_gga(const char *sentence, uint8_t *out_sats, bool *out_fix_valid) {
+    if (!nmea_verify_checksum(sentence)) {
         return false;
     }
-    int year = 0;
-    sscanf(field, "%04d", &year);
-    out_time->year = (uint16_t)year;
 
-    out_time->fix_valid = true;
+    char field[16];
+    if (!get_field(sentence, 0, field, sizeof(field))) {
+        return false;
+    }
+    if (strcmp(field, "GNGGA") != 0 && strcmp(field, "GPGGA") != 0 &&
+        strcmp(field, "$GNGGA") != 0 && strcmp(field, "$GPGGA") != 0) {
+        return false;
+    }
+
+    if (get_field(sentence, 6, field, sizeof(field))) {
+        int quality = 0;
+        sscanf(field, "%d", &quality);
+        if (out_fix_valid) {
+            *out_fix_valid = (quality > 0);
+        }
+    }
+
+    if (get_field(sentence, 7, field, sizeof(field))) {
+        int sats = 0;
+        sscanf(field, "%d", &sats);
+        if (out_sats) {
+            *out_sats = (uint8_t)(sats < 0 ? 0 : (sats > 255 ? 255 : sats));
+        }
+    }
+
     return true;
 }

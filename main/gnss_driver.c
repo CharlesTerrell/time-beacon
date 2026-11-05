@@ -9,19 +9,23 @@
 static const char *TAG = "gnss_driver";
 
 esp_err_t gnss_driver_init(void) {
-    // Configure PIN_VEXT_CTRL as GPIO output, no pull-up, no pull-down
+    // 1. Power on GNSS module via PIN_VEXT_CTRL (GPIO 3)
     gpio_reset_pin(PIN_VEXT_CTRL);
     gpio_set_direction(PIN_VEXT_CTRL, GPIO_MODE_OUTPUT);
     gpio_set_pull_mode(PIN_VEXT_CTRL, GPIO_PULLUP_DISABLE);
     gpio_set_pull_mode(PIN_VEXT_CTRL, GPIO_PULLDOWN_DISABLE);
-
-    // Set gpio_set_level(PIN_VEXT_CTRL, 1) to power on the GNSS module
     gpio_set_level(PIN_VEXT_CTRL, 1);
-
-    // Call vTaskDelay(pdMS_TO_TICKS(100)) to allow power stabilization
     vTaskDelay(pdMS_TO_TICKS(100));
 
-    // Configure uart_config_t
+    // 2. Hardware reset cycle for UC6580 via PIN_GNSS_RST (GPIO 35)
+    gpio_reset_pin(PIN_GNSS_RST);
+    gpio_set_direction(PIN_GNSS_RST, GPIO_MODE_OUTPUT);
+    gpio_set_level(PIN_GNSS_RST, 0); // Assert reset (Active LOW)
+    vTaskDelay(pdMS_TO_TICKS(20));
+    gpio_set_level(PIN_GNSS_RST, 1); // Release reset (HIGH enables chip)
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    // 3. Configure UART1 (RX = GPIO 33, TX = GPIO 34)
     uart_config_t uart_config = {
         .baud_rate = GNSS_DEFAULT_BAUD,
         .data_bits = UART_DATA_8_BITS,
