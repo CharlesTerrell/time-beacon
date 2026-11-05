@@ -67,22 +67,27 @@ static bool get_field(const char *sentence, int field_idx, char *out, size_t max
 
 bool nmea_parse_rmc(const char *sentence, nmea_time_t *out_time) {
     if (!nmea_verify_checksum(sentence)) {
+        printf("Checksum verification failed for RMC sentence.\n");
         return false;
     }
 
     char field[10];
     if (!get_field(sentence, 0, field, sizeof(field)) || 
         (strcmp(field, "$GNRMC") != 0 && strcmp(field, "$GPRMC") != 0)) {
+        printf("Invalid sentence header for RMC: %s\n", field);
         return false;
     }
 
     if (!get_field(sentence, 2, field, sizeof(field)) || field[0] != 'A') {
+        printf("Invalid status for RMC: %s\n", field);
         return false;
     }
 
     if (!get_field(sentence, 1, field, sizeof(field))) {
+        printf("Failed to get time field for RMC.\n");
         return false;
     }
+    printf("Time field for RMC: %s\n", field);
 
     int hour, minute, second;
     sscanf(field, "%02d%02d%02d.%*f", &hour, &minute, &second);
@@ -91,8 +96,10 @@ bool nmea_parse_rmc(const char *sentence, nmea_time_t *out_time) {
     out_time->second = (uint8_t)second;
 
     if (!get_field(sentence, 9, field, sizeof(field))) {
+        printf("Failed to get date field for RMC.\n");
         return false;
     }
+    printf("Date field for RMC: %s\n", field);
 
     int day, month, year;
     sscanf(field, "%02d%02d%02d", &day, &month, &year);
@@ -106,17 +113,21 @@ bool nmea_parse_rmc(const char *sentence, nmea_time_t *out_time) {
 
 bool nmea_parse_zda(const char *sentence, nmea_time_t *out_time) {
     if (!nmea_verify_checksum(sentence)) {
+        printf("Checksum verification failed for ZDA sentence.\n");
         return false;
     }
 
     char field[10];
     if (!get_field(sentence, 0, field, sizeof(field)) || strcmp(field, "$GNZDA") != 0) {
+        printf("Invalid sentence header for ZDA: %s\n", field);
         return false;
     }
 
     if (!get_field(sentence, 1, field, sizeof(field))) {
+        printf("Failed to get time field for ZDA.\n");
         return false;
     }
+    printf("Time field for ZDA: %s\n", field);
 
     int hour, minute, second;
     sscanf(field, "%02d%02d%02d.%*f", &hour, &minute, &second);
@@ -125,26 +136,30 @@ bool nmea_parse_zda(const char *sentence, nmea_time_t *out_time) {
     out_time->second = (uint8_t)second;
 
     if (!get_field(sentence, 2, field, sizeof(field))) {
+        printf("Failed to get day field for ZDA.\n");
         return false;
     }
+    printf("Day field for ZDA: %s\n", field);
 
-    int day;
+    if (!get_field(sentence, 3, field, sizeof(field))) {
+        printf("Failed to get month field for ZDA.\n");
+        return false;
+    }
+    printf("Month field for ZDA: %s\n", field);
+
+    if (!get_field(sentence, 4, field, sizeof(field))) {
+        printf("Failed to get year field for ZDA.\n");
+        return false;
+    }
+    printf("Year field for ZDA: %s\n", field);
+
+    int day, month, year;
     sscanf(field, "%02d", &day);
     out_time->day = (uint8_t)day;
 
-    if (!get_field(sentence, 3, field, sizeof(field))) {
-        return false;
-    }
-
-    int month;
     sscanf(field, "%02d", &month);
     out_time->month = (uint8_t)month;
 
-    if (!get_field(sentence, 4, field, sizeof(field))) {
-        return false;
-    }
-
-    int year;
     sscanf(field, "%04d", &year);
     out_time->year = (uint16_t)year;
 
