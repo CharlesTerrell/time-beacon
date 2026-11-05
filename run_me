@@ -1,0 +1,12 @@
+#!/bin/bash
+
+. $HOME/esp-idf/export.sh
+
+aider \
+    --model openai/qwen2.5-coder-14b \
+    --openai-api-base http://alpaca:8080/v1 \
+    --test-cmd "idf.py build" \
+    --auto-test \
+    --yes-always \
+    --message "Implement main/time_sync.c according to CURRENT_TASK.md. You must edit BOTH files in your reply: write C code in main/time_sync.c AND change - [ ] to - [x] in CURRENT_TASK.md." \
+    main/time_sync.c CURRENT_TASK.md
