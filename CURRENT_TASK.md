@@ -72,4 +72,4 @@ idf.py build
 ```
 When this command succeeds with zero errors and zero warnings under `-Wall`, mark task `[x]` below:
 
-- [ ] Task Complete: Time synchronization discipline implemented and verified by idf.py build.
+- [x] Task Complete: Time synchronization discipline implemented and verified by idf.py build.
