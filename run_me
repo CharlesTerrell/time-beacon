@@ -8,8 +8,8 @@ aider \
     --test-cmd "idf.py build" \
     --auto-test \
     --yes-always \
-    --message "Implement main/ntp_server.c according to CURRENT_TASK.md. Ensure verification command passes." \
-    main/ntp_server.c
+    --message "Implement main/display.c according to CURRENT_TASK.md. Ensure verification command passes." \
+    main/display.c
 
 # Automated checkbox check on build success
 if [ $? -eq 0 ]; then

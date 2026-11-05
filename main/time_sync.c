@@ -13,7 +13,11 @@ static gnss_status_t s_gnss_status = {0};
 
 esp_err_t time_sync_init(void) {
     s_sync_mutex = xSemaphoreCreateMutex();
-    return s_sync_mutex != NULL ? ESP_OK : ESP_ERR_NO_MEM;
+    if (s_sync_mutex != NULL) {
+        ESP_LOGI(TAG, "Time sync module initialized");
+        return ESP_OK;
+    }
+    return ESP_ERR_NO_MEM;
 }
 
 void time_sync_update_gnss(const nmea_time_t *time_data, int64_t anchor_esp_time_us) {

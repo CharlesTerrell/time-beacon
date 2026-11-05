@@ -16,9 +16,9 @@
 - [x] Task 3.3: UDP socket server on port 123 (non-blocking, high priority task on Core 0).
 
 ## Phase 4: TFT Status Display & Power Management
-- [ ] Task 4.1: ST7735 SPI display driver init (`GPIO 38-42`, Backlight `GPIO 21`).
-- [ ] Task 4.2: Dashboard view (IP, satellites, sync status, UTC time, packet count).
-- [ ] Task 4.3: 120s inactivity screen dim / button wake on `GPIO 0`.
+- [x] Task 4.1: ST7735 SPI display driver init (`GPIO 38-42`, Backlight `GPIO 21`).
+- [x] Task 4.2: Dashboard view (IP, satellites, sync status, UTC time, packet count).
+- [x] Task 4.3: 120s inactivity screen dim / button wake on `GPIO 0`.
 
 ## Phase 5: Verification & Host Integration
 - [ ] Task 5.1: Clean build check `idf.py build`.
