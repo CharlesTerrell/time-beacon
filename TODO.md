@@ -8,7 +8,7 @@
 ## Phase 2: Hardware Driver & FreeRTOS Time Sync
 - [x] Task 2.1: GNSS power control (`GPIO 3` VEXT) & UART1 init (`GPIO 33` RX, `GPIO 34` TX).
 - [x] Task 2.2: Time synchronization discipline & state (`main/time_sync.c`).
-- [ ] Task 2.3: FreeRTOS GNSS UART streaming task (`main/gnss_task.c`).
+- [x] Task 2.3: FreeRTOS GNSS UART streaming task (`main/gnss_task.c`).
 
 ## Phase 3: Wi-Fi & RFC 5905 NTP Server
 - [ ] Task 3.1: Wi-Fi manager with static IP and modem-sleep disabled (`esp_wifi_set_ps(WIFI_PS_NONE)`).

@@ -8,5 +8,5 @@ aider \
     --test-cmd "idf.py build" \
     --auto-test \
     --yes-always \
-    --message "Implement main/time_sync.c according to CURRENT_TASK.md. You must edit BOTH files in your reply: write C code in main/time_sync.c AND change - [ ] to - [x] in CURRENT_TASK.md." \
-    main/time_sync.c CURRENT_TASK.md
+    --message "Implement main/gnss_task.c according to CURRENT_TASK.md. You must edit BOTH files in your reply: write C code in main/gnss_task.c AND change - [ ] to - [x] in CURRENT_TASK.md." \
+    main/gnss_task.c CURRENT_TASK.md
