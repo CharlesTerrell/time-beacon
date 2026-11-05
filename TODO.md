@@ -21,6 +21,6 @@
 - [x] Task 4.3: 120s inactivity screen dim / button wake on `GPIO 0`.
 
 ## Phase 5: Verification & Host Integration
-- [ ] Task 5.1: Clean build check `idf.py build`.
-- [ ] Task 5.2: Generate `deploy/chrony.conf` for Proxmox.
-- [ ] Task 5.3: Generate `deploy/test_ntp.sh` test script.
+- [x] Task 5.1: Clean build check `idf.py build`.
+- [x] Task 5.2: Generate `deploy/chrony.conf` for Proxmox.
+- [x] Task 5.3: Generate `deploy/test_ntp.sh` test script.
