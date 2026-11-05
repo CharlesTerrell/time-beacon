@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 
-static bool nmea_verify_checksum(const char *sentence) {
+bool nmea_verify_checksum(const char *sentence) {
     if (sentence == NULL) {
         return false;
     }
@@ -78,15 +78,29 @@ bool nmea_parse_rmc(const char *sentence, nmea_time_t *out_time) {
         return false;
     }
 
-    sscanf(token, "%02d%02d%02d.%*f", &out_time->hour, &out_time->minute, &out_time->second);
+    int hour, minute, second;
+    sscanf(token, "%02d%02d%02d.%*f", &hour, &minute, &second);
+    out_time->hour = (uint8_t)hour;
+    out_time->minute = (uint8_t)minute;
+    out_time->second = (uint8_t)second;
+
+    for (int i = 0; i < 8; i++) {
+        token = strtok(NULL, ",");
+        if (token == NULL) {
+            return false;
+        }
+    }
 
     token = strtok(NULL, ",");
     if (token == NULL) {
         return false;
     }
 
-    sscanf(token, "%02d%02d%02d", &out_time->day, &out_time->month, &out_time->year);
-    out_time->year += 2000;
+    int day, month, year;
+    sscanf(token, "%02d%02d%02d", &day, &month, &year);
+    out_time->day = (uint8_t)day;
+    out_time->month = (uint8_t)month;
+    out_time->year = (uint16_t)(year + 2000);
 
     return true;
 }
@@ -111,7 +125,7 @@ bool nmea_parse_zda(const char *sentence, nmea_time_t *out_time) {
     buffer[end - start] = '\0';
 
     char *token = strtok(buffer, ",");
-    if (token == NULL || strcmp(token, "$GZDA") != 0) {
+    if (token == NULL || strcmp(token, "$GNZDA") != 0) {
         return false;
     }
 
@@ -120,28 +134,38 @@ bool nmea_parse_zda(const char *sentence, nmea_time_t *out_time) {
         return false;
     }
 
-    sscanf(token, "%02d%02d%02d.%*f", &out_time->hour, &out_time->minute, &out_time->second);
+    int hour, minute, second;
+    sscanf(token, "%02d%02d%02d.%*f", &hour, &minute, &second);
+    out_time->hour = (uint8_t)hour;
+    out_time->minute = (uint8_t)minute;
+    out_time->second = (uint8_t)second;
 
     token = strtok(NULL, ",");
     if (token == NULL) {
         return false;
     }
 
-    sscanf(token, "%02d", &out_time->day);
+    int day;
+    sscanf(token, "%02d", &day);
+    out_time->day = (uint8_t)day;
 
     token = strtok(NULL, ",");
     if (token == NULL) {
         return false;
     }
 
-    sscanf(token, "%02d", &out_time->month);
+    int month;
+    sscanf(token, "%02d", &month);
+    out_time->month = (uint8_t)month;
 
     token = strtok(NULL, ",");
     if (token == NULL) {
         return false;
     }
 
-    sscanf(token, "%04d", &out_time->year);
+    int year;
+    sscanf(token, "%04d", &year);
+    out_time->year = (uint16_t)year;
 
     return true;
 }
