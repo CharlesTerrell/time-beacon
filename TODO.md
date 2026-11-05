@@ -11,7 +11,7 @@
 - [x] Task 2.3: FreeRTOS GNSS UART streaming task (`main/gnss_task.c`).
 
 ## Phase 3: Wi-Fi & RFC 5905 NTP Server
-- [ ] Task 3.1: Wi-Fi manager with static IP and modem-sleep disabled (`esp_wifi_set_ps(WIFI_PS_NONE)`).
+- [x] Task 3.1: Wi-Fi manager with static IP and modem-sleep disabled (`esp_wifi_set_ps(WIFI_PS_NONE)`).
 - [ ] Task 3.2: RFC 5905 packed NTPv4 struct and packet encoder in `main/include/ntp_packet.h`.
 - [ ] Task 3.3: UDP socket server on port 123 (non-blocking, high priority task on Core 0).
 

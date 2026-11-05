@@ -8,5 +8,10 @@ aider \
     --test-cmd "idf.py build" \
     --auto-test \
     --yes-always \
-    --message "Implement main/gnss_task.c according to CURRENT_TASK.md. You must edit BOTH files in your reply: write C code in main/gnss_task.c AND change - [ ] to - [x] in CURRENT_TASK.md." \
-    main/gnss_task.c CURRENT_TASK.md
+    --message "Implement main/wifi_manager.c according to CURRENT_TASK.md. Ensure verification command passes." \
+    main/wifi_manager.c
+
+# Automated checkbox check on build success
+if [ $? -eq 0 ]; then
+    sed -i 's/- \[ \] Task Complete/- [x] Task Complete/' CURRENT_TASK.md
+fi

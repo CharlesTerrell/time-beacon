@@ -1,0 +1,49 @@
+menu "Heltec NTP Configuration"
+
+    config NTP_WIFI_SSID
+        string "Wi-Fi SSID"
+        default "myssid"
+        help
+            SSID of the Wi-Fi access point.
+
+    config NTP_WIFI_PASSWORD
+        string "Wi-Fi Password"
+        default "mypassword"
+        help
+            Password for the Wi-Fi access point.
+
+    config NTP_USE_STATIC_IP
+        bool "Use Static IP"
+        default y
+        help
+            Enable static IP configuration instead of DHCP.
+
+    config NTP_STATIC_IP
+        string "Static IP Address"
+        default "192.168.1.200"
+        depends on NTP_USE_STATIC_IP
+        help
+            Static IPv4 address for the NTP server.
+
+    config NTP_STATIC_GW
+        string "Default Gateway"
+        default "192.168.1.1"
+        depends on NTP_USE_STATIC_IP
+        help
+            Default IPv4 gateway.
+
+    config NTP_STATIC_NETMASK
+        string "Subnet Mask"
+        default "255.255.255.0"
+        depends on NTP_USE_STATIC_IP
+        help
+            Subnet mask (e.g. 255.255.255.0).
+
+    config NTP_STATIC_DNS
+        string "Primary DNS Server"
+        default "1.1.1.1"
+        depends on NTP_USE_STATIC_IP
+        help
+            Primary DNS server IP.
+
+endmenu
