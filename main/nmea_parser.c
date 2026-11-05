@@ -3,6 +3,17 @@
 #include <string.h>
 #include <ctype.h>
 
+static uint8_t hex_to_byte(char c) {
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    } else if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    return 0;
+}
+
 bool nmea_verify_checksum(const char *sentence) {
     if (sentence == NULL) {
         return false;
@@ -33,17 +44,6 @@ bool nmea_verify_checksum(const char *sentence) {
     return checksum == expected_checksum;
 }
 
-static uint8_t hex_to_byte(char c) {
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    } else if (c >= 'A' && c <= 'F') {
-        return c - 'A' + 10;
-    } else if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
-    }
-    return 0;
-}
-
 bool nmea_parse_rmc(const char *sentence, nmea_time_t *out_time) {
     if (!nmea_verify_checksum(sentence)) {
         return false;
@@ -64,7 +64,7 @@ bool nmea_parse_rmc(const char *sentence, nmea_time_t *out_time) {
     buffer[end - start] = '\0';
 
     char *token = strtok(buffer, ",");
-    if (token == NULL || strcmp(token, "$GNRMC") != 0 && strcmp(token, "$GPRMC") != 0) {
+    if (token == NULL || (strcmp(token, "$GNRMC") != 0 && strcmp(token, "$GPRMC") != 0)) {
         return false;
     }
 
