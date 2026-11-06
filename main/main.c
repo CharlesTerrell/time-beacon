@@ -18,22 +18,31 @@ static const char *TAG = "main";
 void app_main(void) {
     ESP_LOGI(TAG, "Heltec Tracker v1.1 initializing...");
 
-    // Check if USER button (GPIO 0) is held during boot for Config Mode
-    gpio_reset_pin(PIN_USER_BTN);
-    gpio_set_direction(PIN_USER_BTN, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(PIN_USER_BTN, GPIO_PULLUP_ONLY);
-    vTaskDelay(pdMS_TO_TICKS(50));
+    // Initialize display early
+    ESP_ERROR_CHECK(display_init());
 
-    if (gpio_get_level(PIN_USER_BTN) == 0) {
-        ESP_LOGI(TAG, "USER button held on boot: Entering USB Flash Drive Config Mode");
-        ESP_ERROR_CHECK(display_init());
+    // 2.5s prompt: Check if USER button is pressed to enter Config Mode
+    bool enter_config = false;
+    for (int i = 25; i > 0; i--) {
+        if (i % 10 == 0 || i == 25) {
+            display_show_boot_prompt((i + 9) / 10);
+        }
+        if (gpio_get_level(PIN_USER_BTN) == 0) {
+            enter_config = true;
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    if (enter_config) {
+        ESP_LOGI(TAG, "USER button pressed: Entering USB Flash Drive Config Mode");
         display_show_config_mode();
         ESP_ERROR_CHECK(usb_msc_start());
         usb_msc_run_loop();
         return;
     }
 
-    // Normal NTP Server Mode
+    // Normal Stratum-1 NTP Server Mode
     ESP_LOGI(TAG, "Booting Stratum-1 NTP Server Mode...");
     ESP_ERROR_CHECK(config_mgr_init());
     ESP_ERROR_CHECK(gnss_driver_init());
@@ -41,6 +50,5 @@ void app_main(void) {
     ESP_ERROR_CHECK(gnss_task_start());
     ESP_ERROR_CHECK(wifi_manager_init(config_mgr_get()));
     ESP_ERROR_CHECK(ntp_server_start());
-    ESP_ERROR_CHECK(display_init());
     ESP_ERROR_CHECK(display_task_start());
 }

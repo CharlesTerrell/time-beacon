@@ -114,6 +114,18 @@ void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_t
     display_flush();
 }
 
+void display_show_boot_prompt(int seconds_left) {
+    memset(s_framebuf, 0, sizeof(s_framebuf));
+    draw_string(4, 4, "HELTEC NTP SERVER", 0xFFE0, 0x0000);   // Yellow
+    draw_string(4, 20, "Press USER btn", 0xFFFF, 0x0000);     // White
+    draw_string(4, 34, "for USB Config...", 0xFFFF, 0x0000);  // White
+    char sec_str[32];
+    snprintf(sec_str, sizeof(sec_str), "Starting in %ds", seconds_left);
+    draw_string(4, 52, sec_str, 0x07E0, 0x0000);             // Green
+    display_flush();
+    display_set_backlight(true);
+}
+
 void display_show_config_mode(void) {
     memset(s_framebuf, 0, sizeof(s_framebuf));
     draw_string(4, 4, "USB CONFIG MODE", 0x07FF, 0x0000);  // Cyan
@@ -168,6 +180,11 @@ esp_err_t display_task_start(void) {
 }
 
 esp_err_t display_init(void) {
+    gpio_reset_pin(PIN_VEXT_CTRL);
+    gpio_set_direction(PIN_VEXT_CTRL, GPIO_MODE_OUTPUT);
+    gpio_set_level(PIN_VEXT_CTRL, 1);
+    vTaskDelay(pdMS_TO_TICKS(50));
+
     gpio_reset_pin(PIN_TFT_BL);
     gpio_reset_pin(PIN_TFT_RST);
     gpio_reset_pin(PIN_TFT_DC);

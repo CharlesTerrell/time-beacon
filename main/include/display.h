@@ -28,6 +28,11 @@ void display_set_backlight(bool enable);
 void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_time, uint32_t packets);
 
 /**
+ * Show boot countdown prompt to allow user to enter Config Mode.
+ */
+void display_show_boot_prompt(int seconds_left);
+
+/**
  * Show USB Config Mode screen.
  */
 void display_show_config_mode(void);
