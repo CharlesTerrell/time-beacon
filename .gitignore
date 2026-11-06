@@ -4,3 +4,5 @@ sdkconfig
 sdkconfig.old
 main/include/wifi_credentials.h
 tests/test_nmea
+dependencies.lock
+managed_components/

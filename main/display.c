@@ -114,6 +114,17 @@ void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_t
     display_flush();
 }
 
+void display_show_config_mode(void) {
+    memset(s_framebuf, 0, sizeof(s_framebuf));
+    draw_string(4, 4, "USB CONFIG MODE", 0x07FF, 0x0000);  // Cyan
+    draw_string(4, 20, "Drive: NTP_CONFIG", 0xFFFF, 0x0000); // White
+    draw_string(4, 34, "Edit: config.ini", 0xFFE0, 0x0000); // Yellow
+    draw_string(4, 48, "Tap USER to exit", 0x07E0, 0x0000); // Green
+    draw_string(4, 62, "& reboot server", 0x07E0, 0x0000);  // Green
+    display_flush();
+    display_set_backlight(true);
+}
+
 static void display_refresh_task(void *pvParameters) {
     (void)pvParameters;
     uint32_t tick_count = 0;

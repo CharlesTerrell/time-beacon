@@ -28,6 +28,11 @@ void display_set_backlight(bool enable);
 void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_time, uint32_t packets);
 
 /**
+ * Show USB Config Mode screen.
+ */
+void display_show_config_mode(void);
+
+/**
  * Start the background display refresh task (refreshes once per second,
  * handles 120s inactivity auto-sleep, and configures GPIO 0 user button wake).
  */

@@ -1,14 +1,42 @@
-# Project Status: Complete
+# Task: Implement Virtual USB Flash Drive (MSC) Mode, DHCP, and Wi-Fi Regulatory Country
 
-All phases and tasks from `TODO.md` are implemented, compiled, and verified:
-- [x] Phase 1: Scaffolding, pin mapping, host-tested NMEA parser.
-- [x] Phase 2: Hardware driver (`GPIO 3` VEXT, UART1), FreeRTOS background stream task on Core 1, clock discipline with 5s watchdog.
-- [x] Phase 3: Wi-Fi manager with static IP and modem-sleep disabled (`WIFI_PS_NONE`), RFC 5905 NTP server daemon on Core 0.
-- [x] Phase 4: ST7735 SPI display driver, dashboard view, 120s auto-dim, and `GPIO 0` wake button.
-- [x] Phase 5: Build verification, `deploy/chrony.conf`, and `deploy/test_ntp.sh`.
+## Task Goal
+1. Support Virtual USB Flash Drive (MSC) on native USB-C port via TinyUSB and Wear-Levelled FATFS (`storage` partition).
+2. Holding `USER` button (`GPIO 0`) on boot enters USB Config Mode, mounting `/storage` as a USB flash drive to edit `config.ini`.
+3. Support Wi-Fi regulatory country code (`country = US/EU/JP/CN`) for channel adaptation via `esp_wifi_set_country_code()`.
+4. Support DHCP (`dhcp = true`) or static IP (`dhcp = false` with IP, gateway, netmask, DNS) in `config.ini`.
+5. Display visual indicator on ST7735 LCD when in USB Config Mode.
+6. Normal boot reads `config.ini` from `/storage` (or creates default if missing) and launches Stratum-1 NTP server.
 
-## Flashing the Hardware
+## Allowed Files to Edit
+- `CURRENT_TASK.md`
+- `partitions.csv`
+- `sdkconfig.defaults`
+- `.gitignore`
+- `main/idf_component.yml`
+- `main/CMakeLists.txt`
+- `main/include/config_mgr.h`
+- `main/config_mgr.c`
+- `main/include/usb_msc.h`
+- `main/usb_msc.c`
+- `main/include/wifi_manager.h`
+- `main/wifi_manager.c`
+- `main/include/display.h`
+- `main/display.c`
+- `main/main.c`
+
+## Verification Command
 ```bash
-. $HOME/esp-idf/export.sh
-idf.py -p /dev/ttyACM0 flash monitor
+. $HOME/esp-idf/export.sh && idf.py build
 ```
+
+## Checklist
+- [x] Create `partitions.csv` with custom FATFS `storage` partition.
+- [x] Configure `sdkconfig.defaults` for custom partition table and TinyUSB.
+- [x] Add `main/idf_component.yml` for `espressif/esp_tinyusb`.
+- [x] Implement `main/include/config_mgr.h` and `main/config_mgr.c` (INI parser and defaults generator).
+- [x] Implement `main/include/usb_msc.h` and `main/usb_msc.c` (TinyUSB MSC storage driver).
+- [x] Update `main/include/wifi_manager.h` and `main/wifi_manager.c` with DHCP and country code support.
+- [x] Update `main/include/display.h` and `main/display.c` with config mode dashboard.
+- [x] Update `main/main.c` with boot mode selection (button held = USB drive, else normal NTP).
+- [x] Run verification command with zero errors and zero warnings.
