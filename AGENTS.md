@@ -1,4 +1,4 @@
-# Rules for AI Agent (Qwen + Aider)
+# Rules for AI Agents
 
 ## Core Contract
 - Target: ESP32-S3 (`esp32s3`), ESP-IDF v5.x (`-std=gnu17`).
@@ -6,7 +6,7 @@
 - Read only `CURRENT_TASK.md` for task goals. Never read `TODO.md` unless instructed.
 - When task verification command passes with zero errors and zero warnings:
   1. Mark task `[x]` in `CURRENT_TASK.md`.
-  2. Automatically stage and commit verified changes with Conventional Commits message and `Co-authored-by: Antigravity (Google Gemini) <antigravity@google.com>`.
+  2. Automatically stage and commit verified changes with Conventional Commits message and `Co-authored-by:` trailer matching the active agent tool and model (e.g., Antigravity/Gemini, Aider/Qwen, Claude Code).
 
 ## Code Quality Rules
 - Fallible functions return `esp_err_t`. Use standard IDF errors (`ESP_OK`, `ESP_ERR_INVALID_ARG`, `ESP_FAIL`).
