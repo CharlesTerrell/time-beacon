@@ -4,7 +4,9 @@
 - Target: ESP32-S3 (`esp32s3`), ESP-IDF v5.x (`-std=gnu17`).
 - Edit only files listed in `CURRENT_TASK.md`.
 - Read only `CURRENT_TASK.md` for task goals. Never read `TODO.md` unless instructed.
-- When task verification command passes with zero errors and zero warnings, mark task `[x]` in `CURRENT_TASK.md`.
+- When task verification command passes with zero errors and zero warnings:
+  1. Mark task `[x]` in `CURRENT_TASK.md`.
+  2. Automatically stage and commit verified changes with Conventional Commits message and `Co-authored-by: Antigravity (Google Gemini) <antigravity@google.com>`.
 
 ## Code Quality Rules
 - Fallible functions return `esp_err_t`. Use standard IDF errors (`ESP_OK`, `ESP_ERR_INVALID_ARG`, `ESP_FAIL`).
