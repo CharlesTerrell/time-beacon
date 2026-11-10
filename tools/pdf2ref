@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+#
+# 2026-11-04 Google Gemini 3.8 Flash
+#
+# pdf2ref: Converts a PDF datasheet/manual to an LLM-optimized Markdown document.
+# Output destination defaults to ./docs/ref/<basename>.md
+# (formerly pdf-to-ref.sh)
+#
+# Usage:
+#   ./pdf2ref /path/to/datasheet.pdf
+#   ./pdf2ref /path/to/datasheet.pdf ./custom/output/dir
+
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 <path-to-pdf> [output-dir]" >&2
+    exit 1
+fi
+
+INPUT_PDF="$1"
+OUTPUT_DIR="${2:-./docs/ref}"
+
+if [[ ! -f "$INPUT_PDF" ]]; then
+    echo "Error: File '$INPUT_PDF' does not exist." >&2
+    exit 1
+fi
+
+BASENAME=$(basename "$INPUT_PDF" .pdf)
+# Normalize filename to clean snake_case
+CLEAN_NAME=$(echo "$BASENAME" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '_' | sed 's/^_//;s/_$//')
+TARGET_DIR="${OUTPUT_DIR}"
+FINAL_OUTPUT="${TARGET_DIR}/${CLEAN_NAME}.md"
+
+mkdir -p "$TARGET_DIR"
+
+TEMP_RAW=$(mktemp --suffix=.md)
+TEMP_CLEAN=$(mktemp --suffix=.md)
+
+cleanup() {
+    rm -f "$TEMP_RAW" "$TEMP_CLEAN"
+}
+trap cleanup EXIT
+
+echo "--> Ingesting: $INPUT_PDF"
+
+# 1. Primary conversion: prefer python markitdown, fallback to pdftotext + pandoc
+if command -v markitdown >/dev/null 2>&1; then
+    markitdown "$INPUT_PDF" -o "$TEMP_RAW"
+elif command -v pdftotext >/dev/null 2>&1 && command -v pandoc >/dev/null 2>&1; then
+    echo "    (markitdown not found, using pdftotext -layout + pandoc)"
+    pdftotext -layout "$INPUT_PDF" - | pandoc -f markdown -t markdown -o "$TEMP_RAW"
+elif command -v pdftotext >/dev/null 2>&1; then
+    echo "    (pandoc not found, extracting raw layout text)"
+    pdftotext -layout "$INPUT_PDF" "$TEMP_RAW"
+else
+    echo "Error: Need either 'markitdown' (pip install markitdown) or 'poppler-utils' (pdftotext)." >&2
+    exit 1
+fi
+
+echo "--> Stripping images, indexes, headers, and boilerplate..."
+
+python3 - "$TEMP_RAW" "$TEMP_CLEAN" << 'EOF'
+import re
+import sys
+
+input_path = sys.argv[1]
+output_path = sys.argv[2]
+
+with open(input_path, "r", encoding="utf-8", errors="replace") as f:
+    text = f.read()
+
+# 1. Remove base64 data blobs and raw image references: ![alt](path or data:...)
+text = re.sub(r'!\[.*?\]\([^\)]+\)', '', text)
+text = re.sub(r'data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+', '', text)
+
+# 2. Remove common HTML image tags
+text = re.sub(r'<img[^>]*>', '', text, flags=re.IGNORECASE)
+
+lines = text.splitlines()
+filtered_lines = []
+in_toc = False
+
+for line in lines:
+    stripped = line.strip()
+
+    # Detect start of Table of Contents / Index
+    if re.match(r'^(#+\s*)?(table of contents|contents|index)\s*$', stripped, re.IGNORECASE):
+        in_toc = True
+        continue
+
+    # Exit Table of Contents once we hit a substantive markdown header (Chapter 1, Section 1, etc.)
+    if in_toc:
+        if re.match(r'^#+\s+(?!table of contents|contents|index)[a-zA-Z0-9]', stripped, re.IGNORECASE):
+            in_toc = False
+        elif re.search(r'\.{3,}\s*\d+$', stripped) or re.search(r'\s{4,}\d+$', stripped):
+            # Line looks like: "3.2 Peripheral Registers ........... 45"
+            continue
+        elif len(stripped) == 0:
+            continue
+
+    # 3. Filter standalone page numbers, e.g., "Page 12 of 150", "- 12 -", "12"
+    if re.match(r'^(page\s+\d+(\s+of\s+\d+)?|\d+|\-\s*\d+\s*\-)$', stripped, re.IGNORECASE):
+        continue
+
+    # 4. Filter boilerplate legal / document status tags
+    if re.search(r'all rights reserved|confidential|preliminary datasheet|subject to change without notice', stripped, re.IGNORECASE):
+        continue
+
+    filtered_lines.append(line)
+
+cleaned_text = "\n".join(filtered_lines)
+
+# 5. Collapse 3+ consecutive newlines into 2 (clean paragraph breaks)
+cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text)
+
+# 6. Strip trailing whitespace per line
+cleaned_text = "\n".join(l.rstrip() for l in cleaned_text.splitlines()) + "\n"
+
+with open(output_path, "w", encoding="utf-8") as f:
+    f.write(cleaned_text)
+EOF
+
+mv "$TEMP_CLEAN" "$FINAL_OUTPUT"
+
+RAW_SIZE=$(wc -c < "$TEMP_RAW")
+CLEAN_SIZE=$(wc -c < "$FINAL_OUTPUT")
+TOKEN_EST=$(( CLEAN_SIZE / 4 ))
+
+echo "--> Done!"
+echo "    Saved to: $FINAL_OUTPUT"
+echo "    Size reduction: $RAW_SIZE bytes -> $CLEAN_SIZE bytes (~$TOKEN_EST tokens)"

@@ -4,6 +4,10 @@
 #include "time_sync.h"
 #include "wifi_manager.h"
 #include "ntp_server.h"
+#include "power_mgr.h"
+#include "config_mgr.h"
+#include "ble_cts_service.h"
+#include "lora_time_beacons.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
@@ -92,31 +96,88 @@ static void display_flush(void) {
 }
 
 void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_time, uint32_t packets) {
-    memset(s_framebuf, 0, sizeof(s_framebuf));
-    draw_string(4, 4, "HELTEC NTP STRATUM 1", 0xFFE0, 0x0000); // Yellow
+    power_status_t pwr;
+    power_mgr_get_status(&pwr);
+    uint16_t bg_color = power_mgr_get_bg_color();
+    uint16_t fg_color = power_mgr_get_fg_color();
+    uint16_t bg_swapped = (uint16_t)((bg_color >> 8) | (bg_color << 8));
+
+    for (size_t i = 0; i < TFT_WIDTH * TFT_HEIGHT; i++) {
+        s_framebuf[i] = bg_swapped;
+    }
+
+    if (pwr.mode == POWER_MODE_BATTERY_CRITICAL) {
+        draw_string(4, 4, "! CRITICAL BATTERY !", fg_color, bg_color);
+        draw_string(4, 20, "CONNECT USB CHARGER", fg_color, bg_color);
+        char sleep_str[32];
+        snprintf(sleep_str, sizeof(sleep_str), "SHUTDOWN IN: %ds", pwr.critical_countdown_sec);
+        draw_string(4, 38, sleep_str, fg_color, bg_color);
+        char v_str[32];
+        snprintf(v_str, sizeof(v_str), "VOLTAGE: %0.2fV", pwr.voltage);
+        draw_string(4, 56, v_str, fg_color, bg_color);
+        display_flush();
+        return;
+    }
+
+    const app_config_t *cfg = config_mgr_get();
+    char title_str[64];
+    if (cfg && cfg->node_name[0] != '\0') {
+        if (strlen(cfg->node_name) <= 15) {
+            snprintf(title_str, sizeof(title_str), "%s STRATUM 1", cfg->node_name);
+        } else {
+            snprintf(title_str, sizeof(title_str), "%.24s", cfg->node_name);
+        }
+    } else {
+        snprintf(title_str, sizeof(title_str), "HELTEC TIME STRATUM 1");
+    }
+    draw_string(4, 4, title_str, fg_color, bg_color);
 
     char ip_str[32];
-    snprintf(ip_str, sizeof(ip_str), "IP: %s", ip ? ip : "---");
-    draw_string(4, 18, ip_str, 0xFFFF, 0x0000); // White
+    uint32_t lora_cnt = lora_time_beacons_get_count();
+    if (cfg && !cfg->enable_wifi) {
+        snprintf(ip_str, sizeof(ip_str), "LoRa:%s [%lu]", lora_time_beacons_get_last_mode(), (unsigned long)lora_cnt);
+    } else {
+        snprintf(ip_str, sizeof(ip_str), "IP: %s", ip ? ip : "---");
+    }
+    draw_string(4, 18, ip_str, fg_color, bg_color);
 
     char sats_str[32];
-    snprintf(sats_str, sizeof(sats_str), "SATS: %u [%s]", (unsigned int)sats, locked ? "LOCK" : "WAIT");
-    draw_string(4, 32, sats_str, locked ? 0x07E0 : 0xF800, 0x0000); // Green/Red
+    const char *lock_mode = locked ? (time_sync_is_pps_locked() ? "PPS" : "NMEA") : "WAIT";
+    snprintf(sats_str, sizeof(sats_str), "SATS: %u [%s]", (unsigned int)sats, lock_mode);
+    uint16_t lock_color = locked ? 0x07E0 : 0xF800; // Bright green / bright red on dark bg
+    draw_string(4, 32, sats_str, lock_color, bg_color);
 
     char time_str[32];
-    snprintf(time_str, sizeof(time_str), "UTC: %s", utc_time ? utc_time : "--:--:--");
-    draw_string(4, 46, time_str, 0xFFFF, 0x0000); // White
+    gnss_status_t gnss;
+    if (time_sync_get_status(&gnss) && gnss.has_pos) {
+        float lat = (float)gnss.latitude_i / 10000000.0f;
+        float lon = (float)gnss.longitude_i / 10000000.0f;
+        snprintf(time_str, sizeof(time_str), "UTC %s %0.1f %0.1f", utc_time ? utc_time : "--:--:--", lat, lon);
+    } else {
+        snprintf(time_str, sizeof(time_str), "UTC: %s", utc_time ? utc_time : "--:--:--");
+    }
+    draw_string(4, 46, time_str, fg_color, bg_color);
 
-    char packets_str[32];
-    snprintf(packets_str, sizeof(packets_str), "REQS: %lu", (unsigned long)packets);
-    draw_string(4, 60, packets_str, 0x07FF, 0x0000); // Cyan
+    char status_str[32];
+    const char *ble_status = "";
+    if (cfg && cfg->enable_ble) {
+        ble_status = ble_cts_service_is_connected() ? "[BT*]" : "[BT]";
+    }
+    if (pwr.mode == POWER_MODE_USB) {
+        snprintf(status_str, sizeof(status_str), "N:%lu L:%lu %s USB",
+                 (unsigned long)packets, (unsigned long)lora_cnt, ble_status);
+    } else {
+        snprintf(status_str, sizeof(status_str), "N:%lu L:%lu %s %0.1fV",
+                 (unsigned long)packets, (unsigned long)lora_cnt, ble_status, pwr.voltage);
+    }
+    draw_string(4, 60, status_str, fg_color, bg_color);
 
     display_flush();
 }
 
 void display_show_boot_prompt(int seconds_left) {
     memset(s_framebuf, 0, sizeof(s_framebuf));
-    draw_string(4, 4, "HELTEC NTP SERVER", 0xFFE0, 0x0000);   // Yellow
+    draw_string(4, 4, "HELTEC NTP SERVER", 0xFFFF, 0x0000);   // White
     draw_string(4, 20, "Press USER btn", 0xFFFF, 0x0000);     // White
     draw_string(4, 34, "for USB Config...", 0xFFFF, 0x0000);  // White
     char sec_str[32];
@@ -141,6 +202,8 @@ static void display_refresh_task(void *pvParameters) {
     (void)pvParameters;
     uint32_t tick_count = 0;
     while (1) {
+        power_mgr_tick_led(s_backlight_on);
+
         if (gpio_get_level(PIN_USER_BTN) == 0) {
             s_last_activity_us = esp_timer_get_time();
             if (!s_backlight_on) {
@@ -151,24 +214,37 @@ static void display_refresh_task(void *pvParameters) {
         if ((esp_timer_get_time() - s_last_activity_us) > 120000000LL) {
             display_set_backlight(false);
         }
-        if (s_backlight_on && ++tick_count >= 20) {
+        if (++tick_count >= 20) {
             tick_count = 0;
-            char ip[16] = "DISCONNECTED";
-            wifi_manager_get_ip(ip, sizeof(ip));
+            power_mgr_update();
+            power_mgr_check_emergency_sleep();
 
-            gnss_status_t status;
-            bool locked = time_sync_get_status(&status);
-
-            char utc_time[16] = "--:--:--";
-            if (status.last_fix_esp_time_us > 0) {
-                snprintf(utc_time, sizeof(utc_time), "%02u:%02u:%02u",
-                         (unsigned int)status.last_fix_time.hour,
-                         (unsigned int)status.last_fix_time.minute,
-                         (unsigned int)status.last_fix_time.second);
+            power_status_t pwr;
+            power_mgr_get_status(&pwr);
+            ble_cts_service_update_power((uint8_t)pwr.percentage, (uint16_t)(pwr.voltage * 1000.0f), pwr.usb_connected);
+            if (pwr.mode == POWER_MODE_BATTERY_CRITICAL && !s_backlight_on) {
+                display_set_backlight(true);
+                s_last_activity_us = esp_timer_get_time();
             }
 
-            uint32_t packets = ntp_server_get_packet_count();
-            display_update(ip, status.satellites, locked, utc_time, packets);
+            if (s_backlight_on) {
+                char ip[16] = "DISCONNECTED";
+                wifi_manager_get_ip(ip, sizeof(ip));
+
+                gnss_status_t status;
+                bool locked = time_sync_get_status(&status);
+
+                char utc_time[16] = "--:--:--";
+                if (status.last_fix_esp_time_us > 0) {
+                    snprintf(utc_time, sizeof(utc_time), "%02u:%02u:%02u",
+                             (unsigned int)status.last_fix_time.hour,
+                             (unsigned int)status.last_fix_time.minute,
+                             (unsigned int)status.last_fix_time.second);
+                }
+
+                uint32_t packets = ntp_server_get_packet_count();
+                display_update(ip, status.satellites, locked, utc_time, packets);
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
     }
@@ -232,6 +308,8 @@ esp_err_t display_init(void) {
 
     tft_cmd(0x36); // Memory Access Control
     tft_data_byte(0x68); // Landscape orientation
+
+    tft_cmd(0x21); // Display Inversion ON (INVON)
 
     tft_cmd(0x29); // Display ON
     vTaskDelay(pdMS_TO_TICKS(50));

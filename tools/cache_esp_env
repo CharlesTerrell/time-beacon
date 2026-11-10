@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+echo "IDF_PATH = $IDF_PATH"
+echo "Checking if ./.env.esp exists..."
+if [ -f "./.env.esp" ]; then
+    echo "File exists - is it outdated?"
+    . ./.env.esp
+    if [[ "$IDF_VER" == "$ESP_IDF_VERSION" ]]; then
+        echo "Version matches"
+    else
+        echo "$IDF_VER != $ESP_IDF_VERSION; recreating ./.env.esp"
+        $IDF_PATH/tools/idf_tools.py export --format key-value > .env.esp
+    fi
+else
+    echo "File missing; creating ./.env.esp"
+    $IDF_PATH/tools/idf_tools.py export --format key-value > .env.esp
+fi
+echo "Done: $IDF_VER"

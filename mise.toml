@@ -1,0 +1,17 @@
+[tools]
+python = "3.14"
+#cmake = "latest"
+# idf_tools.py complains about ninja versions
+ninja = "1.12.1"
+
+[env]
+# Point to your local ESP-IDF installation directory
+IDF_VER = "6.1"
+IDF_PATH = "{{env.HOME}}/.espressif/v{{env.IDF_VER}}/esp-idf"
+_.file = ".env.esp"
+
+# Run this after updating esp-idf:
+#    mise run update-esp-env
+[tasks.update-esp-env]
+description = "Regenerate cached ESP-IDF environment variables"
+run = "$IDF_PATH/tools/idf_tools.py export --format key-value > .env.esp"

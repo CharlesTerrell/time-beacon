@@ -1,8 +1,13 @@
+.specstory/
+docs/github/
+docs/ref/esp-idf/
 .aider*
 build/
+build_*/
 sdkconfig
 sdkconfig.old
 main/include/wifi_credentials.h
 tests/test_nmea
 dependencies.lock
 managed_components/
+.env.esp

@@ -9,6 +9,28 @@ extern "C" {
 #endif
 
 typedef struct {
+    // Device identity
+    char node_name[33];
+    uint8_t led_peak_percent; // 0 - 100%
+    bool usb_nmea_output;     // Stream raw NMEA out USB console instead of logging
+    bool enable_pps;          // Enable hardware 1PPS discipline (default: true; false forces NMEA fallback)
+    int16_t nmea_offset_ms;   // Software delay compensation in ms when 1PPS is absent (default: 60)
+
+    // Services enable/disable
+    bool enable_wifi;
+    bool enable_ntp;
+    bool enable_ble;
+    bool enable_meshcore;
+    bool enable_meshtastic;
+    bool enable_ble_battery;
+    bool enable_lora_power;
+    uint8_t position_precision; // Meshtastic precision bits: 18 = ~90m fuzzy/privacy, 32 = exact GPS
+
+    // LoRa RF Settings
+    uint32_t lora_freq_hz;
+    int8_t lora_tx_power;
+
+    // Wi-Fi network settings
     char wifi_ssid[33];
     char wifi_password[65];
     char country_code[3]; // e.g. "US", "EU", "JP", "CN"

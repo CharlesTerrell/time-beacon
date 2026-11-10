@@ -58,13 +58,23 @@ static void ntp_server_task(void *pvParameters) {
         gnss_status_t gnss_stat;
         bool locked = time_sync_get_status(&gnss_stat);
 
+        memset(&resp, 0, sizeof(resp));
+
+#define NTP_REF_ID_PPS 0x50505300ULL /* "PPS\0" */
+
         uint8_t li = locked ? 0 : 3;
         resp.li_vn_mode = (li << 6) | (4 << 3) | 4;
         resp.stratum = locked ? 1 : 16;
         resp.poll = req.poll;
-        resp.precision = -18;
-        resp.root_dispersion = locked ? htonl(0x00000080) : htonl(0x00010000);
-        resp.ref_id = locked ? htonl((uint32_t)NTP_REF_ID_GPS) : htonl((uint32_t)NTP_REF_ID_INIT);
+        resp.precision = (locked && gnss_stat.pps_synced) ? -20 : -16;
+        resp.root_delay = 0; // Stratum 1 primary server has 0 root delay
+        resp.root_dispersion = locked ? (gnss_stat.pps_synced ? htonl(0x00000010) : htonl(0x00000100)) : htonl(0x00010000);
+        if (locked) {
+            resp.ref_id = gnss_stat.pps_synced ? htonl((uint32_t)NTP_REF_ID_PPS) : htonl((uint32_t)NTP_REF_ID_GPS);
+        } else {
+            resp.ref_id = htonl((uint32_t)NTP_REF_ID_INIT);
+        }
+        resp.ref_time = now_ntp;
         resp.origin_time = req.transmit_time;
         resp.receive_time = now_ntp;
         resp.transmit_time = now_ntp;

@@ -11,15 +11,19 @@
 #include "gnss_task.h"
 #include "wifi_manager.h"
 #include "ntp_server.h"
+#include "ble_cts_service.h"
+#include "lora_time_beacons.h"
 #include "display.h"
+#include "power_mgr.h"
 
 static const char *TAG = "main";
 
 void app_main(void) {
-    ESP_LOGI(TAG, "Heltec Tracker v1.1 initializing...");
+    ESP_LOGI(TAG, "%s initializing...", BOARD_HARDWARE_NAME);
 
-    // Initialize display early
+    // Initialize display and power management early
     ESP_ERROR_CHECK(display_init());
+    ESP_ERROR_CHECK(power_mgr_init());
 
     // 2.5s prompt: Check if USER button is pressed to enter Config Mode
     bool enter_config = false;
@@ -42,13 +46,52 @@ void app_main(void) {
         return;
     }
 
-    // Normal Stratum-1 NTP Server Mode
-    ESP_LOGI(TAG, "Booting Stratum-1 NTP Server Mode...");
+    // Normal Stratum-1 Time Server Mode
+    ESP_LOGI(TAG, "Booting Stratum-1 Time Server Mode...");
     ESP_ERROR_CHECK(config_mgr_init());
+    const app_config_t *cfg = config_mgr_get();
+    if (cfg->usb_nmea_output) {
+        esp_log_level_set("*", ESP_LOG_NONE);
+    }
+    power_mgr_set_led_peak_percent(cfg->led_peak_percent);
+
     ESP_ERROR_CHECK(gnss_driver_init());
     ESP_ERROR_CHECK(time_sync_init());
     ESP_ERROR_CHECK(gnss_task_start());
-    ESP_ERROR_CHECK(wifi_manager_init(config_mgr_get()));
-    ESP_ERROR_CHECK(ntp_server_start());
+
+    // Wi-Fi service
+    if (cfg->enable_wifi) {
+        ESP_LOGI(TAG, "Starting Wi-Fi service...");
+        ESP_ERROR_CHECK(wifi_manager_init(cfg));
+    } else {
+        ESP_LOGI(TAG, "Wi-Fi service is disabled in config");
+    }
+
+    // NTP server service
+    if (cfg->enable_wifi && cfg->enable_ntp) {
+        ESP_LOGI(TAG, "Starting NTP server service...");
+        ESP_ERROR_CHECK(ntp_server_start());
+    } else if (!cfg->enable_wifi) {
+        ESP_LOGI(TAG, "NTP server service disabled (requires Wi-Fi)");
+    } else {
+        ESP_LOGI(TAG, "NTP server service is disabled in config");
+    }
+
+    // BLE CTS service
+    if (cfg->enable_ble) {
+        ESP_LOGI(TAG, "Starting BLE CTS service (name: %s)...", cfg->node_name);
+        ESP_ERROR_CHECK(ble_cts_service_start(cfg->node_name));
+    } else {
+        ESP_LOGI(TAG, "BLE CTS service is disabled in config");
+    }
+
+    // LoRa time beacon service (MeshCore + Meshtastic)
+    if (cfg->enable_meshcore || cfg->enable_meshtastic) {
+        ESP_LOGI(TAG, "Starting LoRa time beacon service...");
+        ESP_ERROR_CHECK(lora_time_beacons_start());
+    } else {
+        ESP_LOGI(TAG, "LoRa time beacon service is disabled in config");
+    }
+
     ESP_ERROR_CHECK(display_task_start());
 }

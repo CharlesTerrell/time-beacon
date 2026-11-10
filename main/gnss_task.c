@@ -2,11 +2,13 @@
 #include "gnss_driver.h"
 #include "nmea_parser.h"
 #include "time_sync.h"
+#include "config_mgr.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <string.h>
+#include <stdio.h>
 
 static const char *TAG = "gnss_task";
 
@@ -32,7 +34,12 @@ static void gnss_stream_task(void *pvParameters) {
             if (byte == '\r' || byte == '\n') {
                 line_buf[idx] = '\0';
                 if (nmea_verify_checksum(line_buf)) {
-                    if (esp_timer_get_time() - last_log_us > 3000000LL) {
+                    const app_config_t *cfg = config_mgr_get();
+                    if (cfg && cfg->usb_nmea_output) {
+                        fwrite(line_buf, 1, strlen(line_buf), stdout);
+                        fwrite("\r\n", 1, 2, stdout);
+                        fflush(stdout);
+                    } else if (esp_timer_get_time() - last_log_us > 3000000LL) {
                         ESP_LOGI(TAG, "NMEA: %s", line_buf);
                         last_log_us = esp_timer_get_time();
                     }

@@ -17,6 +17,10 @@ typedef struct {
     uint32_t microseconds; /* 0 - 999999 */
     bool     fix_valid;  /* true if fix status is active ('A') */
     uint8_t  satellites; /* satellite count if present */
+    bool     has_pos;    /* true if latitude and longitude are valid */
+    int32_t  latitude_i; /* degrees * 1e7, signed (+: North, -: South) */
+    int32_t  longitude_i;/* degrees * 1e7, signed (+: East, -: West) */
+    int32_t  altitude_m; /* altitude in meters above sea level */
 } nmea_time_t;
 
 /**
