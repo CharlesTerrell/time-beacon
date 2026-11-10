@@ -328,6 +328,95 @@ static uint8_t build_meshcore_packet(uint8_t *out_buf, uint32_t epoch_sec, const
     }
 }
 
+static void send_meshtastic_burst(const app_config_t *cfg, bool is_long_fast) {
+    if (!cfg) return;
+
+    uint8_t sf = is_long_fast ? 11 : 9;
+    uint32_t freq = get_meshtastic_freq(cfg, is_long_fast);
+    const char *mode_name = is_long_fast ? "Mesh LongFast" : "Mesh MedFast";
+
+    sx1262_set_sync_word(SX1262_SYNC_MESHTASTIC);
+    sx1262_set_lora_params(sf, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
+    sx1262_set_frequency(freq);
+    sx1262_set_tx_power(cfg->lora_tx_power);
+
+    // 1. NodeInfo packet
+    uint8_t len = build_meshtastic_nodeinfo_packet(s_tx_buf, cfg->node_name, is_long_fast);
+    esp_err_t err = sx1262_transmit(s_tx_buf, len, 3000);
+    if (err == ESP_OK) {
+        s_beacon_count++;
+        ESP_LOGI(TAG, "Sent %s burst [1/3 NodeInfo] (SF%u, %luHz, %uB)",
+                 mode_name, sf, (unsigned long)freq, len);
+    } else {
+        ESP_LOGW(TAG, "Failed %s burst [1/3 NodeInfo]: %s", mode_name, esp_err_to_name(err));
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    // 2. Position + Time packet
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint32_t now_sec = (uint32_t)tv.tv_sec;
+    gnss_status_t gnss;
+    time_sync_get_status(&gnss);
+
+    len = build_meshtastic_packet(s_tx_buf, now_sec, &gnss, is_long_fast);
+    err = sx1262_transmit(s_tx_buf, len, 3000);
+    if (err == ESP_OK) {
+        s_beacon_count++;
+        ESP_LOGI(TAG, "Sent %s burst [2/3 Pos] (SF%u, %luHz, %uB, time=%lu, %s)",
+                 mode_name, sf, (unsigned long)freq, len, (unsigned long)now_sec,
+                 gnss.has_pos ? "GPS" : "NoGPS");
+    } else {
+        ESP_LOGW(TAG, "Failed %s burst [2/3 Pos]: %s", mode_name, esp_err_to_name(err));
+    }
+
+    // 3. Telemetry packet (battery / power status)
+    if (cfg->enable_lora_power) {
+        vTaskDelay(pdMS_TO_TICKS(500));
+        power_status_t pwr;
+        power_mgr_get_status(&pwr);
+        len = build_meshtastic_telemetry_packet(s_tx_buf, now_sec, &pwr, is_long_fast);
+        err = sx1262_transmit(s_tx_buf, len, 3000);
+        if (err == ESP_OK) {
+            s_beacon_count++;
+            ESP_LOGI(TAG, "Sent %s burst [3/3 Telem] (SF%u, %luHz, %uB)",
+                     mode_name, sf, (unsigned long)freq, len);
+        } else {
+            ESP_LOGW(TAG, "Failed %s burst [3/3 Telem]: %s", mode_name, esp_err_to_name(err));
+        }
+    }
+
+    strncpy(s_last_mode, is_long_fast ? "MESH-LF" : "MESH-MF", sizeof(s_last_mode) - 1);
+}
+
+static void send_meshcore_beacon(const app_config_t *cfg) {
+    if (!cfg) return;
+
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint32_t now_sec = (uint32_t)tv.tv_sec;
+
+    sx1262_set_sync_word(SX1262_SYNC_PUBLIC);
+    sx1262_set_lora_params(10, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
+    sx1262_set_frequency(cfg->lora_freq_hz);
+    sx1262_set_tx_power(cfg->lora_tx_power);
+
+    power_status_t pwr;
+    power_mgr_get_status(&pwr);
+    uint8_t len = build_meshcore_packet(s_tx_buf, now_sec, cfg->node_name, &pwr, cfg->enable_lora_power);
+    esp_err_t err = sx1262_transmit(s_tx_buf, len, 2500);
+    if (err == ESP_OK) {
+        s_beacon_count++;
+        strncpy(s_last_mode, "MESHCORE", sizeof(s_last_mode) - 1);
+        ESP_LOGI(TAG, "Sent MeshCore time beacon (SF10, %luHz, %uB, time=%lu, pwr=%s)",
+                 (unsigned long)cfg->lora_freq_hz, len, (unsigned long)now_sec,
+                 cfg->enable_lora_power ? (pwr.usb_connected ? "USB" : "BAT") : "OFF");
+    } else {
+        ESP_LOGW(TAG, "Failed to send MeshCore beacon: %s", esp_err_to_name(err));
+    }
+}
+
 static void lora_beacon_task(void *pvParameters) {
     (void)pvParameters;
     uint32_t cycle = 0;
@@ -335,132 +424,97 @@ static void lora_beacon_task(void *pvParameters) {
     // Allow GNSS task time to start up
     vTaskDelay(pdMS_TO_TICKS(5000));
 
-    // Send immediate NodeInfo and Position advertisements on startup so peers register this node in NodeDB
+    // Send immediate advertisements on startup across enabled modes so peers populate NodeDB quickly
     const app_config_t *init_cfg = config_mgr_get();
-    if (init_cfg && init_cfg->enable_meshtastic) {
-        // 1. LongFast startup pulse
-        sx1262_set_sync_word(SX1262_SYNC_MESHTASTIC);
-        sx1262_set_lora_params(11, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
-        sx1262_set_frequency(init_cfg->lora_freq_hz);
-        sx1262_set_tx_power(init_cfg->lora_tx_power);
-        uint8_t len = build_meshtastic_nodeinfo_packet(s_tx_buf, init_cfg->node_name, true);
-        sx1262_transmit(s_tx_buf, len, 3000);
-        ESP_LOGI(TAG, "Sent initial Meshtastic LongFast NodeInfo (name='%s', node=!%08lx)",
-                 init_cfg->node_name, (unsigned long)s_node_num);
-        vTaskDelay(pdMS_TO_TICKS(1500));
+    if (init_cfg) {
+        if (init_cfg->enable_meshtastic) {
+            // 1. LongFast startup pulse
+            sx1262_set_sync_word(SX1262_SYNC_MESHTASTIC);
+            sx1262_set_lora_params(11, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
+            sx1262_set_frequency(init_cfg->lora_freq_hz);
+            sx1262_set_tx_power(init_cfg->lora_tx_power);
+            uint8_t len = build_meshtastic_nodeinfo_packet(s_tx_buf, init_cfg->node_name, true);
+            sx1262_transmit(s_tx_buf, len, 3000);
+            s_beacon_count++;
+            ESP_LOGI(TAG, "Sent initial Meshtastic LongFast NodeInfo (name='%s', node=!%08lx)",
+                     init_cfg->node_name, (unsigned long)s_node_num);
+            vTaskDelay(pdMS_TO_TICKS(1500));
 
-        struct timeval tv_init;
-        gettimeofday(&tv_init, NULL);
-        gnss_status_t gnss_init;
-        time_sync_get_status(&gnss_init);
-        len = build_meshtastic_packet(s_tx_buf, (uint32_t)tv_init.tv_sec, &gnss_init, true);
-        sx1262_transmit(s_tx_buf, len, 3000);
-        ESP_LOGI(TAG, "Sent initial Meshtastic LongFast Position");
-        vTaskDelay(pdMS_TO_TICKS(1500));
+            struct timeval tv_init;
+            gettimeofday(&tv_init, NULL);
+            gnss_status_t gnss_init;
+            time_sync_get_status(&gnss_init);
+            len = build_meshtastic_packet(s_tx_buf, (uint32_t)tv_init.tv_sec, &gnss_init, true);
+            sx1262_transmit(s_tx_buf, len, 3000);
+            s_beacon_count++;
+            ESP_LOGI(TAG, "Sent initial Meshtastic LongFast Position");
+            vTaskDelay(pdMS_TO_TICKS(1500));
 
-        // 2. MediumFast startup pulse
-        uint32_t mf_freq = get_meshtastic_freq(init_cfg, false);
-        sx1262_set_lora_params(9, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
-        sx1262_set_frequency(mf_freq);
-        len = build_meshtastic_nodeinfo_packet(s_tx_buf, init_cfg->node_name, false);
-        sx1262_transmit(s_tx_buf, len, 3000);
-        ESP_LOGI(TAG, "Sent initial Meshtastic MedFast NodeInfo (freq=%luHz)", (unsigned long)mf_freq);
-        vTaskDelay(pdMS_TO_TICKS(1500));
+            // 2. MediumFast startup pulse
+            uint32_t mf_freq = get_meshtastic_freq(init_cfg, false);
+            sx1262_set_lora_params(9, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
+            sx1262_set_frequency(mf_freq);
+            len = build_meshtastic_nodeinfo_packet(s_tx_buf, init_cfg->node_name, false);
+            sx1262_transmit(s_tx_buf, len, 3000);
+            s_beacon_count++;
+            ESP_LOGI(TAG, "Sent initial Meshtastic MedFast NodeInfo (freq=%luHz)", (unsigned long)mf_freq);
+            vTaskDelay(pdMS_TO_TICKS(1500));
 
-        gettimeofday(&tv_init, NULL);
-        time_sync_get_status(&gnss_init);
-        len = build_meshtastic_packet(s_tx_buf, (uint32_t)tv_init.tv_sec, &gnss_init, false);
-        sx1262_transmit(s_tx_buf, len, 3000);
-        ESP_LOGI(TAG, "Sent initial Meshtastic MedFast Position");
-        vTaskDelay(pdMS_TO_TICKS(1500));
+            gettimeofday(&tv_init, NULL);
+            time_sync_get_status(&gnss_init);
+            len = build_meshtastic_packet(s_tx_buf, (uint32_t)tv_init.tv_sec, &gnss_init, false);
+            sx1262_transmit(s_tx_buf, len, 3000);
+            s_beacon_count++;
+            ESP_LOGI(TAG, "Sent initial Meshtastic MedFast Position");
+            vTaskDelay(pdMS_TO_TICKS(1500));
+        }
+
+        if (init_cfg->enable_meshcore) {
+            struct timeval tv_init;
+            gettimeofday(&tv_init, NULL);
+            power_status_t pwr_init;
+            power_mgr_get_status(&pwr_init);
+            sx1262_set_sync_word(SX1262_SYNC_PUBLIC);
+            sx1262_set_lora_params(10, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
+            sx1262_set_frequency(init_cfg->lora_freq_hz);
+            sx1262_set_tx_power(init_cfg->lora_tx_power);
+            uint8_t len = build_meshcore_packet(s_tx_buf, (uint32_t)tv_init.tv_sec, init_cfg->node_name,
+                                                &pwr_init, init_cfg->enable_lora_power);
+            sx1262_transmit(s_tx_buf, len, 2500);
+            s_beacon_count++;
+            ESP_LOGI(TAG, "Sent initial MeshCore time beacon");
+        }
     }
+
+    TickType_t last_wake = xTaskGetTickCount();
 
     while (1) {
         const app_config_t *cfg = config_mgr_get();
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        uint32_t now_sec = (uint32_t)tv.tv_sec;
 
-        // Phase 1 (:00): Meshtastic pulse alternating between LongFast and MediumFast
-        if (cfg && cfg->enable_meshtastic) {
-            bool is_long_fast = ((cycle % 2) == 0);
-            uint8_t sf = is_long_fast ? 11 : 9;
-            uint32_t freq = get_meshtastic_freq(cfg, is_long_fast);
-            const char *mode_name = is_long_fast ? "Mesh LongFast" : "Mesh MedFast";
-
-            sx1262_set_sync_word(SX1262_SYNC_MESHTASTIC);
-            sx1262_set_lora_params(sf, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
-            sx1262_set_frequency(freq);
-            sx1262_set_tx_power(cfg->lora_tx_power);
-
-            power_status_t pwr;
-            power_mgr_get_status(&pwr);
-            gnss_status_t gnss;
-            time_sync_get_status(&gnss);
-
-            uint8_t len = 0;
-            const char *sub_type = "Pos";
-            // Symmetrical 4-step sequence for each mode:
-            // step = (cycle / 2) % 4
-            // 0: NodeInfo
-            // 1: Position
-            // 2: Telemetry (if power enabled, else Position)
-            // 3: Position
-            uint32_t step = (cycle / 2) % 4;
-            if (step == 0) {
-                len = build_meshtastic_nodeinfo_packet(s_tx_buf, cfg->node_name, is_long_fast);
-                sub_type = "NodeInfo";
-            } else if (step == 2 && cfg->enable_lora_power) {
-                len = build_meshtastic_telemetry_packet(s_tx_buf, now_sec, &pwr, is_long_fast);
-                sub_type = "Telem";
-            } else {
-                len = build_meshtastic_packet(s_tx_buf, now_sec, &gnss, is_long_fast);
-                sub_type = gnss.has_pos ? "Pos+GPS" : "Pos";
-            }
-
-            esp_err_t err = sx1262_transmit(s_tx_buf, len, 3000);
-            if (err == ESP_OK) {
-                s_beacon_count++;
-                strncpy(s_last_mode, is_long_fast ? "MESH-LF" : "MESH-MF", sizeof(s_last_mode) - 1);
-                ESP_LOGI(TAG, "Sent %s pulse (%s, SF%u, %luHz, %uB, time=%lu)",
-                         mode_name, sub_type,
-                         sf, (unsigned long)freq, len, (unsigned long)now_sec);
-            } else {
-                ESP_LOGW(TAG, "Failed to send %s pulse: %s", mode_name, esp_err_to_name(err));
-            }
-        }
-
-        // Half-minute offset (30 seconds)
-        vTaskDelay(pdMS_TO_TICKS(30000));
-
-        // Phase 2 (:30): MeshCore Time Beacon
-        if (cfg && cfg->enable_meshcore) {
-            gettimeofday(&tv, NULL);
-            now_sec = (uint32_t)tv.tv_sec;
-
-            sx1262_set_sync_word(SX1262_SYNC_PUBLIC);
-            sx1262_set_lora_params(10, SX1262_BW_250_KHZ, SX1262_CR_4_5, false);
-            sx1262_set_frequency(cfg->lora_freq_hz);
-            sx1262_set_tx_power(cfg->lora_tx_power);
-
-            power_status_t pwr;
-            power_mgr_get_status(&pwr);
-            uint8_t len = build_meshcore_packet(s_tx_buf, now_sec, cfg->node_name, &pwr, cfg->enable_lora_power);
-            esp_err_t err = sx1262_transmit(s_tx_buf, len, 2500);
-            if (err == ESP_OK) {
-                s_beacon_count++;
-                strncpy(s_last_mode, "MESHCORE", sizeof(s_last_mode) - 1);
-                ESP_LOGI(TAG, "Sent MeshCore time beacon (SF10, %luHz, %uB, time=%lu, pwr=%s)",
-                         (unsigned long)cfg->lora_freq_hz, len, (unsigned long)now_sec,
-                         cfg->enable_lora_power ? (pwr.usb_connected ? "USB" : "BAT") : "OFF");
-            } else {
-                ESP_LOGW(TAG, "Failed to send MeshCore beacon: %s", esp_err_to_name(err));
+        if (cfg) {
+            if (cfg->enable_meshtastic && cfg->enable_meshcore) {
+                // 3-phase rotation: 0=LongFast, 1=MedFast, 2=MeshCore
+                uint32_t phase = cycle % 3;
+                if (phase == 0) {
+                    send_meshtastic_burst(cfg, true);
+                } else if (phase == 1) {
+                    send_meshtastic_burst(cfg, false);
+                } else {
+                    send_meshcore_beacon(cfg);
+                }
+            } else if (cfg->enable_meshtastic) {
+                // Only Meshtastic enabled: alternate LongFast and MediumFast
+                bool is_long_fast = ((cycle % 2) == 0);
+                send_meshtastic_burst(cfg, is_long_fast);
+            } else if (cfg->enable_meshcore) {
+                // Only MeshCore enabled
+                send_meshcore_beacon(cfg);
             }
         }
 
         cycle++;
-        // Remainder of the 60s cycle (30 seconds)
-        vTaskDelay(pdMS_TO_TICKS(30000));
+        // 1 turn every minute
+        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(60000));
     }
 }
 

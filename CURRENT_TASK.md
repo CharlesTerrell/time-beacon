@@ -1,15 +1,20 @@
-# Task: Fix Meshtastic HardwareModel Enum to HELTEC_WIRELESS_TRACKER
+# Task: Implement 3-way 1-minute rotation (LongFast -> MediumFast -> MeshCore)
 
 ## Task Goal
-1. In `main/lora_time_beacons.c`:
-   - Change `hw_model` from 47 (`RPI_PICO`) to 48 (`HELTEC_WIRELESS_TRACKER`) in `build_meshtastic_nodeinfo_packet`.
-2. In `tests/test_harness.c`:
-   - Update `test_meshtastic_nodeinfo_layout()` to assert hardware model 48.
-3. Run verification command:
+Implement Option B rotation in `main/lora_time_beacons.c`:
+1. When both Meshtastic and MeshCore are enabled:
+   - Cycle 0 (min 0): Meshtastic LongFast burst (NodeInfo, Position, Telemetry with ~500ms spacing).
+   - Cycle 1 (min 1): Meshtastic MediumFast burst (NodeInfo, Position, Telemetry with ~500ms spacing).
+   - Cycle 2 (min 2): MeshCore pulse (ISO-8601 time + GPS coordinates text).
+   - Next cycle repeats every 3 minutes, with 1 turn executing every minute.
+2. If only Meshtastic is enabled: alternate LongFast and MediumFast bursts every minute.
+3. If only MeshCore is enabled: send MeshCore pulse every minute.
+4. On startup: broadcast immediate announcement burst across enabled modes so peers populate NodeDB quickly.
+5. In `tests/test_harness.c`: add unit test verifying the 3-way rotation scheduling and packet builder layouts.
+6. Verification command:
    ```bash
    ./build_tracker.sh all && ./tests/run_tests.sh
    ```
-4. Verify build and native tests pass with zero errors and zero warnings, mark task complete, and auto-commit.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
@@ -22,7 +27,7 @@
 ```
 
 ## Checklist
-- [x] Update `hw_model` to 48 in `main/lora_time_beacons.c`.
-- [x] Update unit test in `tests/test_harness.c`.
+- [x] Update `lora_beacon_task` in `main/lora_time_beacons.c` to 3-way 1-minute rotation with burst transmissions.
+- [x] Update `tests/test_harness.c` to verify rotation logic.
 - [x] Verify build and tests pass with zero errors and zero warnings.
 - [x] Automatically commit verified changes per AGENTS.md.

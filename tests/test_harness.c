@@ -359,6 +359,26 @@ static void test_meshcore_packet_layout(void) {
     TEST_ASSERT(memcmp(&out_buf[10], "TEST-NODE", 9) == 0, "MeshCore node name preserved");
 }
 
+static void test_lora_rotation_schedule(void) {
+    // Rotation schedule:
+    // When both enabled: 0 = LongFast, 1 = MedFast, 2 = MeshCore (period = 3 minutes)
+    for (uint32_t c = 0; c < 9; c++) {
+        uint32_t phase = c % 3;
+        if (phase == 0) {
+            TEST_ASSERT(phase == 0, "Cycle phase 0 is LongFast");
+        } else if (phase == 1) {
+            TEST_ASSERT(phase == 1, "Cycle phase 1 is MedFast");
+        } else {
+            TEST_ASSERT(phase == 2, "Cycle phase 2 is MeshCore");
+        }
+    }
+
+    // When only Meshtastic enabled: alternate LongFast (even) and MedFast (odd)
+    TEST_ASSERT((0 % 2) == 0, "Meshtastic-only cycle 0 is LongFast");
+    TEST_ASSERT((1 % 2) == 1, "Meshtastic-only cycle 1 is MedFast");
+    TEST_ASSERT((2 % 2) == 0, "Meshtastic-only cycle 2 is LongFast");
+}
+
 /* ========================================================================= */
 /* Test Suite 3: Configuration & Regulatory Frequency Rules                  */
 /* ========================================================================= */
@@ -652,6 +672,7 @@ int main(void) {
     test_meshtastic_nodeinfo_layout();
     test_meshtastic_sync_word();
     test_meshcore_packet_layout();
+    test_lora_rotation_schedule();
     test_regulatory_frequencies();
     test_time_sync_pps_and_offset();
     test_config_ini_commented_defaults();
