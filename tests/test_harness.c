@@ -520,6 +520,121 @@ static void test_config_ini_commented_defaults(void) {
     TEST_ASSERT(position_precision == 18, "Commented position_precision preserves default (18)");
 }
 
+static void test_config_ini_lora_freq_and_country_aliases(void) {
+    // Case 1: country in [device] auto-derives LoRa frequency when lora_freq is commented out
+    const char *ini_device_country =
+        "[device]\n"
+        "country = EU\n"
+        "[lora]\n"
+        "# lora_freq = 906875000\n";
+
+    char country[4] = "US";
+    uint32_t lora_freq = get_default_lora_freq_by_country(country);
+    bool explicit_freq = false;
+
+    char buf[256];
+    const char *ptr = ini_device_country;
+    char current_section[32] = {0};
+
+    while (*ptr) {
+        size_t len = 0;
+        while (ptr[len] && ptr[len] != '\n') len++;
+        if (len >= sizeof(buf)) len = sizeof(buf) - 1;
+        memcpy(buf, ptr, len);
+        buf[len] = '\0';
+        ptr += len;
+        if (*ptr == '\n') ptr++;
+
+        char *p = buf;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '\0' || *p == '#' || *p == ';') continue;
+
+        if (*p == '[' && p[strlen(p) - 1] == ']') {
+            p[strlen(p) - 1] = '\0';
+            strncpy(current_section, p + 1, sizeof(current_section) - 1);
+            continue;
+        }
+
+        char *eq = strchr(p, '=');
+        if (!eq) continue;
+        *eq = '\0';
+        char *key = p;
+        while (strlen(key) > 0 && key[strlen(key) - 1] == ' ') key[strlen(key) - 1] = '\0';
+        char *val = eq + 1;
+        while (*val == ' ') val++;
+
+        if (strcmp(current_section, "device") == 0 || strcmp(current_section, "regulatory") == 0) {
+            if (strcmp(key, "country") == 0) {
+                snprintf(country, sizeof(country), "%s", val);
+                if (!explicit_freq) lora_freq = get_default_lora_freq_by_country(country);
+            }
+        } else if (strcmp(current_section, "lora") == 0) {
+            if (strcmp(key, "lora_freq") == 0 || strcmp(key, "frequency") == 0) {
+                lora_freq = (uint32_t)strtoul(val, NULL, 10);
+                explicit_freq = true;
+            }
+        }
+    }
+
+    TEST_ASSERT(strcmp(country, "EU") == 0, "Country set to EU under [device]");
+    TEST_ASSERT(lora_freq == 869525000, "Commented lora_freq auto-derives 869.525 MHz for EU");
+
+    // Case 2: explicit lora_freq overrides country default
+    const char *ini_explicit_freq =
+        "[device]\n"
+        "country = US\n"
+        "[lora]\n"
+        "lora_freq = 915000000\n";
+
+    strcpy(country, "US");
+    lora_freq = get_default_lora_freq_by_country(country);
+    explicit_freq = false;
+    ptr = ini_explicit_freq;
+    memset(current_section, 0, sizeof(current_section));
+
+    while (*ptr) {
+        size_t len = 0;
+        while (ptr[len] && ptr[len] != '\n') len++;
+        if (len >= sizeof(buf)) len = sizeof(buf) - 1;
+        memcpy(buf, ptr, len);
+        buf[len] = '\0';
+        ptr += len;
+        if (*ptr == '\n') ptr++;
+
+        char *p = buf;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '\0' || *p == '#' || *p == ';') continue;
+
+        if (*p == '[' && p[strlen(p) - 1] == ']') {
+            p[strlen(p) - 1] = '\0';
+            strncpy(current_section, p + 1, sizeof(current_section) - 1);
+            continue;
+        }
+
+        char *eq = strchr(p, '=');
+        if (!eq) continue;
+        *eq = '\0';
+        char *key = p;
+        while (strlen(key) > 0 && key[strlen(key) - 1] == ' ') key[strlen(key) - 1] = '\0';
+        char *val = eq + 1;
+        while (*val == ' ') val++;
+
+        if (strcmp(current_section, "device") == 0) {
+            if (strcmp(key, "country") == 0) {
+                snprintf(country, sizeof(country), "%s", val);
+                if (!explicit_freq) lora_freq = get_default_lora_freq_by_country(country);
+            }
+        } else if (strcmp(current_section, "lora") == 0) {
+            if (strcmp(key, "lora_freq") == 0 || strcmp(key, "frequency") == 0) {
+                lora_freq = (uint32_t)strtoul(val, NULL, 10);
+                explicit_freq = true;
+            }
+        }
+    }
+
+    TEST_ASSERT(lora_freq == 915000000, "Explicit lora_freq sets custom frequency 915.000 MHz");
+}
+
 /* ========================================================================= */
 /* Main Runner                                                               */
 /* ========================================================================= */
@@ -540,6 +655,7 @@ int main(void) {
     test_regulatory_frequencies();
     test_time_sync_pps_and_offset();
     test_config_ini_commented_defaults();
+    test_config_ini_lora_freq_and_country_aliases();
     test_display_utc_location_line();
 
     printf("\nResults: %d/%d assertions passed.\n", s_tests_passed, s_tests_run);

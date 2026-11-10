@@ -149,6 +149,11 @@ esp_err_t config_mgr_write_default_ini(const char *path) {
     fprintf(f, "[device]\n");
     fprintf(f, "# Custom device node name broadcast in beacons and telemetry (max 32 chars):\n");
     fprintf(f, "node_name = %s\n\n", s_config.node_name);
+    fprintf(f, "# Regulatory ISO country code (controls Wi-Fi channels and default LoRa frequency plan):\n");
+    fprintf(f, "#   US = 906.875 MHz (US915)      EU = 869.525 MHz (EU868)      AU = 916.875 MHz (AU915)\n");
+    fprintf(f, "#   IN = 865.200 MHz (IN865)      JP = 921.875 MHz (JP920)      KR = 921.900 MHz (KR920)\n");
+    fprintf(f, "#   CN = 470.000 MHz (CN470)\n");
+    fprintf(f, "# country = %s\n\n", s_config.country_code);
     fprintf(f, "# Status LED peak pulse intensity when screen is in powersave/off (0 to 100 percent):\n");
     fprintf(f, "# led_peak_percent = %u\n\n", (unsigned int)s_config.led_peak_percent);
     fprintf(f, "# Stream raw NMEA sentences ($GNRMC, $GNZDA, etc.) out USB console instead of logs:\n");
@@ -184,11 +189,9 @@ esp_err_t config_mgr_write_default_ini(const char *path) {
 
     fprintf(f, "[lora]\n");
     fprintf(f, "# LoRa carrier frequency in Hz.\n");
-    fprintf(f, "# Set 0 or leave commented out to auto-configure by country code:\n");
-    fprintf(f, "#   US/CA/MX: 906875000 (US915)   EU/UK: 869525000 (EU868)   AU/NZ: 916875000 (AU915)\n");
-    fprintf(f, "#   JP:       921875000 (JP920)   KR:    921900000 (KR920)   IN:    865200000 (IN865)\n");
-    fprintf(f, "#   CN:       470000000 (CN470)\n");
-    fprintf(f, "# frequency = %lu\n\n", (unsigned long)s_config.lora_freq_hz);
+    fprintf(f, "# Leave commented out to automatically use regional frequency for 'country' above.\n");
+    fprintf(f, "# To override with an explicit custom frequency, uncomment and set:\n");
+    fprintf(f, "# lora_freq = %lu\n\n", (unsigned long)s_config.lora_freq_hz);
     fprintf(f, "# LoRa RF transmit power in dBm (0 to 22 dBm, default: 22):\n");
     fprintf(f, "# tx_power = %d\n\n", (int)s_config.lora_tx_power);
 
@@ -264,6 +267,24 @@ static void parse_ini_file(FILE *f, app_config_t *cfg) {
                        strcasecmp(key, "nmea_delay_ms") == 0 ||
                        strcasecmp(key, "gps_offset_ms") == 0) {
                 cfg->nmea_offset_ms = (int16_t)atoi(val);
+            } else if (strcasecmp(key, "country") == 0 || strcasecmp(key, "country_code") == 0) {
+                snprintf(cfg->country_code, sizeof(cfg->country_code), "%s", val);
+                for (int i = 0; cfg->country_code[i]; i++) {
+                    cfg->country_code[i] = (char)toupper((unsigned char)cfg->country_code[i]);
+                }
+                if (!explicit_freq) {
+                    cfg->lora_freq_hz = get_default_lora_freq_by_country(cfg->country_code);
+                }
+            }
+        } else if (strcmp(current_section, "regulatory") == 0) {
+            if (strcasecmp(key, "country") == 0 || strcasecmp(key, "country_code") == 0) {
+                snprintf(cfg->country_code, sizeof(cfg->country_code), "%s", val);
+                for (int i = 0; cfg->country_code[i]; i++) {
+                    cfg->country_code[i] = (char)toupper((unsigned char)cfg->country_code[i]);
+                }
+                if (!explicit_freq) {
+                    cfg->lora_freq_hz = get_default_lora_freq_by_country(cfg->country_code);
+                }
             }
         } else if (strcmp(current_section, "services") == 0) {
             if (strcasecmp(key, "wifi") == 0) {
@@ -293,11 +314,21 @@ static void parse_ini_file(FILE *f, app_config_t *cfg) {
                 cfg->enable_lora_power = parse_bool(val, cfg->enable_lora_power);
             }
         } else if (strcmp(current_section, "lora") == 0) {
-            if (strcasecmp(key, "frequency") == 0 || strcasecmp(key, "freq") == 0) {
+            if (strcasecmp(key, "lora_freq") == 0 || strcasecmp(key, "lora_freq_hz") == 0 ||
+                strcasecmp(key, "lora_frequency") == 0 || strcasecmp(key, "frequency") == 0 ||
+                strcasecmp(key, "freq") == 0) {
                 uint32_t f_val = (uint32_t)strtoul(val, NULL, 10);
                 if (f_val > 100000000 && f_val < 1000000000) {
                     cfg->lora_freq_hz = f_val;
                     explicit_freq = true;
+                }
+            } else if (strcasecmp(key, "country") == 0 || strcasecmp(key, "country_code") == 0) {
+                snprintf(cfg->country_code, sizeof(cfg->country_code), "%s", val);
+                for (int i = 0; cfg->country_code[i]; i++) {
+                    cfg->country_code[i] = (char)toupper((unsigned char)cfg->country_code[i]);
+                }
+                if (!explicit_freq) {
+                    cfg->lora_freq_hz = get_default_lora_freq_by_country(cfg->country_code);
                 }
             } else if (strcasecmp(key, "tx_power") == 0 || strcasecmp(key, "power") == 0) {
                 int p_val = atoi(val);
