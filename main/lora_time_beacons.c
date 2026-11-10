@@ -216,9 +216,9 @@ static uint8_t build_meshtastic_nodeinfo_packet(uint8_t *out_buf, const char *no
     memcpy(&user_buf[u_idx], mac, 6);
     u_idx += 6;
 
-    // field 5: hw_model (varint tag 0x28, 47 = HELTEC_WIRELESS_TRACKER)
+    // field 5: hw_model (varint tag 0x28, 48 = HELTEC_WIRELESS_TRACKER)
     user_buf[u_idx++] = 0x28;
-    user_buf[u_idx++] = 47;
+    user_buf[u_idx++] = 48;
 
     // Data wrapper:
     // field 1: portnum = 4 (NODEINFO_APP -> tag 0x08, 0x04)

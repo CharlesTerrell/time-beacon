@@ -287,7 +287,7 @@ static void test_meshtastic_nodeinfo_layout(void) {
     u_idx += 6;
 
     user_buf[u_idx++] = 0x28; // tag 5: hw_model
-    user_buf[u_idx++] = 47;   // HELTEC_WIRELESS_TRACKER
+    user_buf[u_idx++] = 48;   // HELTEC_WIRELESS_TRACKER
 
     uint8_t plaintext[80];
     plaintext[0] = 0x08; // portnum tag
@@ -300,7 +300,7 @@ static void test_meshtastic_nodeinfo_layout(void) {
     TEST_ASSERT(user_buf[0] == 0x0A, "User protobuf starts with field 1 (id)");
     TEST_ASSERT(user_buf[2 + id_len] == 0x12, "User protobuf field 2 is long_name");
     TEST_ASSERT(user_buf[u_idx - 2] == 0x28, "User protobuf contains hw_model tag 0x28");
-    TEST_ASSERT(user_buf[u_idx - 1] == 47, "Hardware model is 47 (HELTEC_WIRELESS_TRACKER)");
+    TEST_ASSERT(user_buf[u_idx - 1] == 48, "Hardware model is 48 (HELTEC_WIRELESS_TRACKER)");
 }
 
 static void test_meshtastic_sync_word(void) {
