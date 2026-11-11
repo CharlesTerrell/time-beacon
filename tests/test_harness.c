@@ -455,7 +455,7 @@ static void test_config_ini_commented_defaults(void) {
         "# ntp = false\n"
         "wifi = true\n";
 
-    char node_name[33] = "Heltec-Time";
+    char node_name[33] = "TimeBeacon";
     uint8_t led_peak_percent = 50;
     bool enable_pps = true;
     int16_t nmea_offset_ms = 60;

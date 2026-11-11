@@ -17,7 +17,7 @@
 #include <string.h>
 
 static const char *TAG = "ble_cts";
-static char s_device_name[33] = "Heltec-Time";
+static char s_device_name[33] = "TimeBeacon";
 static uint8_t s_own_addr_type = 0;
 static bool s_connected = false;
 static bool s_started = false;

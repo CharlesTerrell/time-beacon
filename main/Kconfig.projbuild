@@ -1,4 +1,4 @@
-menu "Heltec Hardware Configuration"
+menu "Hardware Target Configuration"
 
     choice BOARD_HARDWARE_VERSION
         prompt "Hardware Revision"
@@ -27,7 +27,7 @@ menu "Heltec Hardware Configuration"
 
 endmenu
 
-menu "Heltec NTP Configuration"
+menu "Time Beacon Configuration"
 
     config NTP_WIFI_SSID
         string "Wi-Fi SSID"

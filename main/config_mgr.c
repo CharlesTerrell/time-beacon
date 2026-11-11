@@ -107,7 +107,7 @@ static uint32_t get_default_lora_freq_by_country(const char *country) {
 
 static void load_defaults(app_config_t *cfg) {
     memset(cfg, 0, sizeof(*cfg));
-    snprintf(cfg->node_name, sizeof(cfg->node_name), "%s", "Heltec-Time");
+    snprintf(cfg->node_name, sizeof(cfg->node_name), "%s", "TimeBeacon");
     cfg->led_peak_percent = 50;
     cfg->usb_nmea_output = false;
     cfg->enable_pps = true;
@@ -139,7 +139,7 @@ esp_err_t config_mgr_write_default_ini(const char *path) {
     }
 
     fprintf(f, "# ==============================================================================\n");
-    fprintf(f, "# Heltec Stratum-1 Time Server Configuration\n");
+    fprintf(f, "# Time Beacon Stratum-1 Server Configuration\n");
     fprintf(f, "# ==============================================================================\n");
     fprintf(f, "# Edit this file, save, and eject/reboot device to apply changes.\n");
     fprintf(f, "# Lines starting with '#' or ';' are comments.\n");

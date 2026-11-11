@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Test script to validate Heltec Tracker NTP Server response from Proxmox host.
+# Test script to validate Time Beacon NTP Server response.
 #
 # Usage:
 #   ./deploy/test_ntp.sh [TARGET_IP]
@@ -11,7 +11,7 @@ set -euo pipefail
 TARGET_IP="${1:-192.168.1.200}"
 
 echo "============================================================"
-echo "Testing Heltec NTP Server at: ${TARGET_IP}"
+echo "Testing Time Beacon NTP Server at: ${TARGET_IP}"
 echo "============================================================"
 
 # 1. Ping test
@@ -74,7 +74,7 @@ print(f"        Stratum:        {stratum} ({'Stratum 1 (Primary GNSS)' if stratu
 print(f"        Reference ID:   {ref_id.decode('ascii', errors='replace')}")
 
 if stratum == 1 and li == 0:
-    print("\n[SUCCESS] Heltec Tracker is active and synchronized to GNSS!")
+    print("\n[SUCCESS] Time Beacon is active and synchronized to GNSS!")
 else:
     print("\n[WARNING] Device responded, but GNSS fix is not yet locked.")
 EOF

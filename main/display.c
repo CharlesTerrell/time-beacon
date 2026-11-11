@@ -128,7 +128,7 @@ void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_t
             snprintf(title_str, sizeof(title_str), "%.24s", cfg->node_name);
         }
     } else {
-        snprintf(title_str, sizeof(title_str), "HELTEC TIME STRATUM 1");
+        snprintf(title_str, sizeof(title_str), "TIME BEACON STRATUM 1");
     }
     draw_string(4, 4, title_str, fg_color, bg_color);
 
@@ -177,7 +177,7 @@ void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_t
 
 void display_show_boot_prompt(int seconds_left) {
     memset(s_framebuf, 0, sizeof(s_framebuf));
-    draw_string(4, 4, "HELTEC NTP SERVER", 0xFFFF, 0x0000);   // White
+    draw_string(4, 4, "TIME BEACON NTP", 0xFFFF, 0x0000);   // White
     draw_string(4, 20, "Press USER btn", 0xFFFF, 0x0000);     // White
     draw_string(4, 34, "for USB Config...", 0xFFFF, 0x0000);  // White
     char sec_str[32];
