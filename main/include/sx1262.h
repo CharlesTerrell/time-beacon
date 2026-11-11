@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 /* Bandwidth constants for SX1262 */
+#define SX1262_BW_62_5_KHZ      0x03
 #define SX1262_BW_125_KHZ       0x04
 #define SX1262_BW_250_KHZ       0x05
 #define SX1262_BW_500_KHZ       0x06
@@ -52,6 +53,11 @@ esp_err_t sx1262_set_lora_params(uint8_t sf, uint8_t bw, uint8_t cr, bool ldro);
  * Set LoRa sync word.
  */
 esp_err_t sx1262_set_sync_word(uint16_t sync_word);
+
+/**
+ * Set LoRa preamble length in symbols (default: 16).
+ */
+esp_err_t sx1262_set_preamble_length(uint16_t preamble_len);
 
 /**
  * Set transmit power in dBm (up to +22 dBm).

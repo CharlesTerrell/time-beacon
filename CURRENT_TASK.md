@@ -1,23 +1,37 @@
-# Task: Fix Meshtastic Position Protobuf Encoding
+# Task: Configure MeshCore to Local Standard (910.525 MHz, 62.5 kHz BW, SF7, CR5, 22 dBm, 2-byte path hash)
 
 ## Task Goal
-Fix Meshtastic Position protobuf message encoding in `main/lora_time_beacons.c`:
-1. Align Position field numbers and wire types to Meshtastic `mesh.proto`:
-   - `precision_bits`: field 23 (tag `0xB8, 0x01`, varint) instead of invalid tag `0x38`.
-   - `location_source`: field 5 (tag `0x28`, varint) with value `2` (`LOC_INTERNAL`) instead of invalid field 8.
-   - `altitude_source`: field 6 (tag `0x30`, varint) with value `2` (`ALT_INTERNAL`) instead of invalid field 9.
-   - `time`: field 4 (tag `0x25`, fixed32).
-   - `timestamp`: field 7 (tag `0x3D`, fixed32) carrying epoch seconds.
-2. Update `tests/test_harness.c`:
-   - Update `test_meshtastic_position_layout()` to assert the correct proto tags (`0x0D`, `0x15`, `0x25`, `0x28`, `0x30`, `0x3D`, `0xB8 0x01`).
-3. Verification command:
+Update MeshCore configuration and packet encoding in `main/lora_time_beacons.c`, `main/include/sx1262.h`, and `main/sx1262.c`:
+1. In `main/include/sx1262.h`:
+   - Add `#define SX1262_BW_62_5_KHZ 0x03`.
+   - Add function prototype `esp_err_t sx1262_set_preamble_length(uint16_t preamble_len)`.
+2. In `main/sx1262.c`:
+   - Implement `sx1262_set_preamble_length()` to dynamically configure preamble length (16 for Meshtastic, 32 for MeshCore SF7).
+   - Use dynamic preamble length in `sx1262_transmit()`.
+3. In `main/lora_time_beacons.c`:
+   - For MeshCore transmissions:
+     - Tune to 910.525 MHz (`910525000` Hz) by default when on standard US915 frequency.
+     - Set bandwidth to 62.5 kHz (`SX1262_BW_62_5_KHZ`).
+     - Set spreading factor to SF7 (`sf = 7`).
+     - Set coding rate to CR 4/5 (`SX1262_CR_4_5`).
+     - Set TX power to 22 dBm.
+     - Set preamble to 32 symbols.
+     - Set packet header to `0x11` (`(PAYLOAD_TYPE_ADVERT << 2) | ROUTE_TYPE_FLOOD`).
+     - Set path length to `0x40` (2-byte path hashing mode, 0 hops).
+   - Reset preamble to 16 symbols when switching to Meshtastic.
+4. In `tests/test_harness.c`:
+   - Update `test_meshcore_packet_layout()` to verify the 2-byte path hash mode (`0x40`) and `0x11` flood header.
+   - Add test assertions verifying MeshCore 910.525 MHz, SF7, 62.5 kHz BW parameters.
+5. Verification command:
    ```bash
    ./build_tracker.sh all && ./tests/run_tests.sh
    ```
-4. Verify build and tests pass with zero errors and zero warnings, mark task complete, and auto-commit.
+6. Verify build and tests pass with zero errors and zero warnings, mark task complete, and auto-commit.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
+- `main/include/sx1262.h`
+- `main/sx1262.c`
 - `main/lora_time_beacons.c`
 - `tests/test_harness.c`
 
@@ -27,7 +41,8 @@ Fix Meshtastic Position protobuf message encoding in `main/lora_time_beacons.c`:
 ```
 
 ## Checklist
-- [x] Correct protobuf field tags and values in `main/lora_time_beacons.c`.
-- [x] Update assertions in `tests/test_harness.c`.
+- [x] Add 62.5 kHz bandwidth and preamble length control to `main/include/sx1262.h` and `main/sx1262.c`.
+- [x] Update MeshCore radio params and packet header/path format in `main/lora_time_beacons.c`.
+- [x] Update tests in `tests/test_harness.c`.
 - [x] Verify build and tests pass with zero errors and zero warnings.
 - [x] Automatically commit verified changes per AGENTS.md.

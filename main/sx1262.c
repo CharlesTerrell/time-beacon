@@ -195,6 +195,14 @@ esp_err_t sx1262_set_sync_word(uint16_t sync_word) {
     return sx1262_write_register(0x0740, sw, 2);
 }
 
+static uint16_t s_preamble_len = 16;
+
+esp_err_t sx1262_set_preamble_length(uint16_t preamble_len) {
+    if (preamble_len < 4) preamble_len = 4;
+    s_preamble_len = preamble_len;
+    return ESP_OK;
+}
+
 esp_err_t sx1262_set_tx_power(int8_t power_dbm) {
     if (power_dbm > 22) power_dbm = 22;
     if (power_dbm < -9) power_dbm = -9;
@@ -214,9 +222,16 @@ esp_err_t sx1262_transmit(const uint8_t *payload, uint8_t len, uint32_t timeout_
     sx1262_write_cmd(0x8F, base_addr, 2);
 
     // Set Packet Params:
-    // PreambleLength = 16 (0x0010), HeaderType = Explicit (0x00),
+    // PreambleLength = s_preamble_len, HeaderType = Explicit (0x00),
     // PayloadLength = len, CRCType = On (0x01), InvertIQ = Standard (0x00)
-    uint8_t pkt_params[6] = { 0x00, 0x10, 0x00, len, 0x01, 0x00 };
+    uint8_t pkt_params[6] = {
+        (uint8_t)((s_preamble_len >> 8) & 0xFF),
+        (uint8_t)(s_preamble_len & 0xFF),
+        0x00,
+        len,
+        0x01,
+        0x00
+    };
     sx1262_write_cmd(0x8C, pkt_params, 6);
 
     // Write Payload to buffer at offset 0
