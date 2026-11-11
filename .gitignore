@@ -1,6 +1,6 @@
 .specstory/
 docs/github/
-docs/ref/esp-idf/
+docs/ref/
 .aider*
 build/
 build_*/
