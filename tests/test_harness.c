@@ -192,7 +192,7 @@ static void test_meshtastic_position_layout(void) {
     TEST_ASSERT(lat_diff_m <= 185.0, "18-bit fuzzing difference is within 185 meters max bound");
 
     uint32_t epoch_sec = 1794148800; // Fixed timestamp
-    uint8_t pos_buf[21];
+    uint8_t pos_buf[32];
     uint8_t pos_idx = 0;
     pos_buf[pos_idx++] = 0x0D; // field 1: latitude_i
     memcpy(&pos_buf[pos_idx], &fuzzed_lat, 4);
@@ -200,19 +200,25 @@ static void test_meshtastic_position_layout(void) {
     pos_buf[pos_idx++] = 0x15; // field 2: longitude_i
     memcpy(&pos_buf[pos_idx], &fuzzed_lon, 4);
     pos_idx += 4;
-    pos_buf[pos_idx++] = 0x38; // field 7: precision_bits
+    pos_buf[pos_idx++] = 0xB8; // field 23: precision_bits tag (23<<3)|0 = 184
+    pos_buf[pos_idx++] = 0x01;
     pos_buf[pos_idx++] = prec;
-    pos_buf[pos_idx++] = 0x25; // fixed32 time tag
+    pos_buf[pos_idx++] = 0x25; // field 4: fixed32 time tag
     pos_buf[pos_idx++] = (uint8_t)(epoch_sec & 0xFF);
     pos_buf[pos_idx++] = (uint8_t)((epoch_sec >> 8) & 0xFF);
     pos_buf[pos_idx++] = (uint8_t)((epoch_sec >> 16) & 0xFF);
     pos_buf[pos_idx++] = (uint8_t)((epoch_sec >> 24) & 0xFF);
-    pos_buf[pos_idx++] = 0x40; // loc_source tag
-    pos_buf[pos_idx++] = 0x01; // internal
-    pos_buf[pos_idx++] = 0x48; // alt_source tag
-    pos_buf[pos_idx++] = 0x01;
+    pos_buf[pos_idx++] = 0x28; // field 5: location_source tag (5<<3)|0 = 40
+    pos_buf[pos_idx++] = 0x02; // LOC_INTERNAL = 2
+    pos_buf[pos_idx++] = 0x30; // field 6: altitude_source tag (6<<3)|0 = 48
+    pos_buf[pos_idx++] = 0x02; // ALT_INTERNAL = 2
+    pos_buf[pos_idx++] = 0x3D; // field 7: timestamp tag (7<<3)|5 = 61
+    pos_buf[pos_idx++] = (uint8_t)(epoch_sec & 0xFF);
+    pos_buf[pos_idx++] = (uint8_t)((epoch_sec >> 8) & 0xFF);
+    pos_buf[pos_idx++] = (uint8_t)((epoch_sec >> 16) & 0xFF);
+    pos_buf[pos_idx++] = (uint8_t)((epoch_sec >> 24) & 0xFF);
 
-    uint8_t plaintext[32];
+    uint8_t plaintext[40];
     plaintext[0] = 0x08; // portnum tag
     plaintext[1] = 0x03; // POSITION_APP
     plaintext[2] = 0x12; // payload tag
@@ -220,13 +226,21 @@ static void test_meshtastic_position_layout(void) {
     memcpy(&plaintext[4], pos_buf, pos_idx);
 
     TEST_ASSERT(plaintext[1] == 0x03, "POSITION_APP portnum is 3");
-    TEST_ASSERT(pos_buf[10] == 0x38, "Precision bits tag is 0x38 (field 7)");
-    TEST_ASSERT(pos_buf[11] == 18, "Precision bits value is 18");
-    uint32_t decoded_time = (uint32_t)plaintext[17] |
-                            ((uint32_t)plaintext[18] << 8) |
-                            ((uint32_t)plaintext[19] << 16) |
-                            ((uint32_t)plaintext[20] << 24);
-    TEST_ASSERT(decoded_time == epoch_sec, "Decoded timestamp matches original epoch seconds");
+    TEST_ASSERT(pos_buf[10] == 0xB8 && pos_buf[11] == 0x01, "Precision bits tag is 0xB8 0x01 (field 23)");
+    TEST_ASSERT(pos_buf[12] == 18, "Precision bits value is 18");
+    TEST_ASSERT(pos_buf[18] == 0x28 && pos_buf[19] == 0x02, "location_source is LOC_INTERNAL (tag 0x28, val 2)");
+    TEST_ASSERT(pos_buf[20] == 0x30 && pos_buf[21] == 0x02, "altitude_source is ALT_INTERNAL (tag 0x30, val 2)");
+    TEST_ASSERT(pos_buf[22] == 0x3D, "timestamp tag is 0x3D (field 7 fixed32)");
+    uint32_t decoded_time = (uint32_t)plaintext[18] |
+                            ((uint32_t)plaintext[19] << 8) |
+                            ((uint32_t)plaintext[20] << 16) |
+                            ((uint32_t)plaintext[21] << 24);
+    TEST_ASSERT(decoded_time == epoch_sec, "Decoded time matches original epoch seconds");
+    uint32_t decoded_ts = (uint32_t)plaintext[27] |
+                          ((uint32_t)plaintext[28] << 8) |
+                          ((uint32_t)plaintext[29] << 16) |
+                          ((uint32_t)plaintext[30] << 24);
+    TEST_ASSERT(decoded_ts == epoch_sec, "Decoded GPS timestamp matches original epoch seconds");
 }
 
 static void test_meshtastic_telemetry_layout(void) {

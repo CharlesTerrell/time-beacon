@@ -127,25 +127,31 @@ static uint8_t build_meshtastic_packet(uint8_t *out_buf, uint32_t epoch_sec, con
             pos_buf[pos_idx++] = (uint8_t)(v & 0x7F);
         }
 
-        // field 7: precision_bits (uint32 -> tag 0x38)
+        // field 23: precision_bits (uint32 -> tag (23 << 3) | 0 = 184 = 0xB8, 0x01)
         if (prec > 0) {
-            pos_buf[pos_idx++] = 0x38;
+            pos_buf[pos_idx++] = 0xB8;
+            pos_buf[pos_idx++] = 0x01;
             pos_buf[pos_idx++] = prec;
         }
     }
 
-    // field 4: time (fixed32 -> tag 0x25)
+    // field 4: time (fixed32 -> tag (4 << 3) | 5 = 0x25)
     pos_buf[pos_idx++] = 0x25;
     memcpy(&pos_buf[pos_idx], &epoch_sec, 4);
     pos_idx += 4;
 
-    // field 8: location_source = 1 (LOC_INTERNAL -> tag 0x40, 0x01)
-    pos_buf[pos_idx++] = 0x40;
-    pos_buf[pos_idx++] = 0x01;
+    // field 5: location_source = 2 (LOC_INTERNAL -> tag (5 << 3) | 0 = 0x28)
+    pos_buf[pos_idx++] = 0x28;
+    pos_buf[pos_idx++] = 0x02;
 
-    // field 9: altitude_source = 1 (tag 0x48, 0x01)
-    pos_buf[pos_idx++] = 0x48;
-    pos_buf[pos_idx++] = 0x01;
+    // field 6: altitude_source = 2 (ALT_INTERNAL -> tag (6 << 3) | 0 = 0x30)
+    pos_buf[pos_idx++] = 0x30;
+    pos_buf[pos_idx++] = 0x02;
+
+    // field 7: timestamp (fixed32 -> tag (7 << 3) | 5 = 0x3D)
+    pos_buf[pos_idx++] = 0x3D;
+    memcpy(&pos_buf[pos_idx], &epoch_sec, 4);
+    pos_idx += 4;
 
     // Build Data protobuf wrapper:
     // field 1: portnum = 3 (POSITION_APP -> tag 0x08, 0x03)

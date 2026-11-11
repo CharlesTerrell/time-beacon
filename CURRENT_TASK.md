@@ -1,20 +1,20 @@
-# Task: Implement 3-way 1-minute rotation (LongFast -> MediumFast -> MeshCore)
+# Task: Fix Meshtastic Position Protobuf Encoding
 
 ## Task Goal
-Implement Option B rotation in `main/lora_time_beacons.c`:
-1. When both Meshtastic and MeshCore are enabled:
-   - Cycle 0 (min 0): Meshtastic LongFast burst (NodeInfo, Position, Telemetry with ~500ms spacing).
-   - Cycle 1 (min 1): Meshtastic MediumFast burst (NodeInfo, Position, Telemetry with ~500ms spacing).
-   - Cycle 2 (min 2): MeshCore pulse (ISO-8601 time + GPS coordinates text).
-   - Next cycle repeats every 3 minutes, with 1 turn executing every minute.
-2. If only Meshtastic is enabled: alternate LongFast and MediumFast bursts every minute.
-3. If only MeshCore is enabled: send MeshCore pulse every minute.
-4. On startup: broadcast immediate announcement burst across enabled modes so peers populate NodeDB quickly.
-5. In `tests/test_harness.c`: add unit test verifying the 3-way rotation scheduling and packet builder layouts.
-6. Verification command:
+Fix Meshtastic Position protobuf message encoding in `main/lora_time_beacons.c`:
+1. Align Position field numbers and wire types to Meshtastic `mesh.proto`:
+   - `precision_bits`: field 23 (tag `0xB8, 0x01`, varint) instead of invalid tag `0x38`.
+   - `location_source`: field 5 (tag `0x28`, varint) with value `2` (`LOC_INTERNAL`) instead of invalid field 8.
+   - `altitude_source`: field 6 (tag `0x30`, varint) with value `2` (`ALT_INTERNAL`) instead of invalid field 9.
+   - `time`: field 4 (tag `0x25`, fixed32).
+   - `timestamp`: field 7 (tag `0x3D`, fixed32) carrying epoch seconds.
+2. Update `tests/test_harness.c`:
+   - Update `test_meshtastic_position_layout()` to assert the correct proto tags (`0x0D`, `0x15`, `0x25`, `0x28`, `0x30`, `0x3D`, `0xB8 0x01`).
+3. Verification command:
    ```bash
    ./build_tracker.sh all && ./tests/run_tests.sh
    ```
+4. Verify build and tests pass with zero errors and zero warnings, mark task complete, and auto-commit.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
@@ -27,7 +27,7 @@ Implement Option B rotation in `main/lora_time_beacons.c`:
 ```
 
 ## Checklist
-- [x] Update `lora_beacon_task` in `main/lora_time_beacons.c` to 3-way 1-minute rotation with burst transmissions.
-- [x] Update `tests/test_harness.c` to verify rotation logic.
+- [x] Correct protobuf field tags and values in `main/lora_time_beacons.c`.
+- [x] Update assertions in `tests/test_harness.c`.
 - [x] Verify build and tests pass with zero errors and zero warnings.
 - [x] Automatically commit verified changes per AGENTS.md.
