@@ -115,7 +115,7 @@ static void load_defaults(app_config_t *cfg) {
     cfg->enable_wifi = true;
     cfg->enable_ntp = true;
     cfg->enable_ble = true;
-    cfg->enable_meshcore = true;
+    cfg->enable_meshcore = false;
     cfg->enable_meshtastic = true;
     cfg->enable_ble_battery = true;
     cfg->enable_lora_power = true;

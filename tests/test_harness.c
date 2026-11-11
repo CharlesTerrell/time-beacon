@@ -517,6 +517,7 @@ static void test_config_ini_commented_defaults(void) {
     int16_t nmea_offset_ms = 60;
     bool enable_ntp = true;
     bool enable_wifi = false;
+    bool enable_meshcore = false;
     uint8_t position_precision = 18;
 
     char buf[256];
@@ -558,6 +559,7 @@ static void test_config_ini_commented_defaults(void) {
         } else if (strcmp(current_section, "services") == 0) {
             if (strcmp(key, "ntp") == 0) enable_ntp = (strcmp(val, "true") == 0);
             if (strcmp(key, "wifi") == 0) enable_wifi = (strcmp(val, "true") == 0);
+            if (strcmp(key, "meshcore") == 0) enable_meshcore = (strcmp(val, "true") == 0);
             if (strcmp(key, "position_precision") == 0) position_precision = (uint8_t)atoi(val);
         }
     }
@@ -568,6 +570,7 @@ static void test_config_ini_commented_defaults(void) {
     TEST_ASSERT(nmea_offset_ms == 60, "Commented nmea_offset_ms preserves default (60)");
     TEST_ASSERT(enable_ntp == true, "Commented ntp preserves default (true)");
     TEST_ASSERT(enable_wifi == true, "Uncommented wifi applied (true)");
+    TEST_ASSERT(enable_meshcore == false, "Commented meshcore preserves default (false)");
     TEST_ASSERT(position_precision == 18, "Commented position_precision preserves default (18)");
 }
 
