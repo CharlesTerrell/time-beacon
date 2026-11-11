@@ -85,8 +85,8 @@ void app_main(void) {
         ESP_LOGI(TAG, "BLE CTS service is disabled in config");
     }
 
-    // LoRa time beacon service (MeshCore + Meshtastic)
-    if (cfg->enable_meshcore || cfg->enable_meshtastic) {
+    // LoRa time beacon service (Meshtastic)
+    if (cfg->enable_meshtastic) {
         ESP_LOGI(TAG, "Starting LoRa time beacon service...");
         ESP_ERROR_CHECK(lora_time_beacons_start());
     } else {

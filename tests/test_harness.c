@@ -342,65 +342,16 @@ static void test_display_utc_location_line(void) {
     TEST_ASSERT(4 + px_width <= 160, "UTC location line fits within 160-pixel display width");
 }
 
-static void test_meshcore_packet_layout(void) {
-    uint8_t out_buf[64];
-    uint32_t epoch_sec = 1794148800;
-    const char *name = "TEST-NODE";
-    uint8_t name_len = (uint8_t)strlen(name);
-
-    out_buf[0] = 0x11; // (PAYLOAD_TYPE_ADVERT 0x04 << 2) | ROUTE_TYPE_FLOOD 0x01
-    out_buf[1] = 0x40; // 2-byte path hash mode ((2 - 1) << 6 | 0 hops)
-    out_buf[2] = (uint8_t)(epoch_sec & 0xFF);
-    out_buf[3] = (uint8_t)((epoch_sec >> 8) & 0xFF);
-    out_buf[4] = (uint8_t)((epoch_sec >> 16) & 0xFF);
-    out_buf[5] = (uint8_t)((epoch_sec >> 24) & 0xFF);
-
-    uint8_t flags = 0x01 | 0x02; // Stratum-1 | USB Powered
-    out_buf[6] = flags;
-    out_buf[7] = 100; // 100% battery
-    uint16_t v_mv = 4150;
-    out_buf[8] = (uint8_t)(v_mv & 0xFF);
-    out_buf[9] = (uint8_t)((v_mv >> 8) & 0xFF);
-    memcpy(&out_buf[10], name, name_len);
-
-    TEST_ASSERT(out_buf[0] == 0x11, "MeshCore header has ADVERT type (0x04) and FLOOD route (0x01)");
-    TEST_ASSERT(out_buf[1] == 0x40, "MeshCore path length byte encodes 2-byte hash mode (0x40)");
-    TEST_ASSERT((out_buf[6] & 0x01) == 0x01, "MeshCore Stratum-1 flag set");
-    TEST_ASSERT((out_buf[6] & 0x02) == 0x02, "MeshCore USB powered flag set");
-    TEST_ASSERT(out_buf[7] == 100, "MeshCore battery percentage is 100%");
-    uint16_t decoded_mv = (uint16_t)out_buf[8] | ((uint16_t)out_buf[9] << 8);
-    TEST_ASSERT(decoded_mv == 4150, "MeshCore decoded millivolts is 4150 mV");
-    TEST_ASSERT(memcmp(&out_buf[10], "TEST-NODE", 9) == 0, "MeshCore node name preserved");
-
-    // MeshCore local standard radio parameters
-    uint8_t mc_sf = 7;
-    uint8_t mc_bw = 0x03; // SX1262_BW_62_5_KHZ
-    uint16_t mc_preamble = 32;
-    int8_t mc_pwr = 22;
-    TEST_ASSERT(mc_sf == 7, "MeshCore local standard SF is 7");
-    TEST_ASSERT(mc_bw == 0x03, "MeshCore local standard BW register is 0x03 (62.5 kHz)");
-    TEST_ASSERT(mc_preamble == 32, "MeshCore preamble length is 32 symbols for SF <= 8");
-    TEST_ASSERT(mc_pwr == 22, "MeshCore TX power is 22 dBm");
-}
-
 static void test_lora_rotation_schedule(void) {
-    // Rotation schedule:
-    // When both enabled: 0 = LongFast, 1 = MedFast, 2 = MeshCore (period = 3 minutes)
-    for (uint32_t c = 0; c < 9; c++) {
-        uint32_t phase = c % 3;
-        if (phase == 0) {
-            TEST_ASSERT(phase == 0, "Cycle phase 0 is LongFast");
-        } else if (phase == 1) {
-            TEST_ASSERT(phase == 1, "Cycle phase 1 is MedFast");
+    // 2-phase Meshtastic rotation schedule: alternate LongFast (even min) and MedFast (odd min)
+    for (uint32_t c = 0; c < 6; c++) {
+        bool is_long_fast = ((c % 2) == 0);
+        if (c % 2 == 0) {
+            TEST_ASSERT(is_long_fast == true, "Even minute cycle is LongFast");
         } else {
-            TEST_ASSERT(phase == 2, "Cycle phase 2 is MeshCore");
+            TEST_ASSERT(is_long_fast == false, "Odd minute cycle is MedFast");
         }
     }
-
-    // When only Meshtastic enabled: alternate LongFast (even) and MedFast (odd)
-    TEST_ASSERT((0 % 2) == 0, "Meshtastic-only cycle 0 is LongFast");
-    TEST_ASSERT((1 % 2) == 1, "Meshtastic-only cycle 1 is MedFast");
-    TEST_ASSERT((2 % 2) == 0, "Meshtastic-only cycle 2 is LongFast");
 }
 
 /* ========================================================================= */
@@ -436,13 +387,6 @@ static void test_regulatory_frequencies(void) {
     uint32_t eu_lf_freq = 869525000;
     uint32_t eu_mf_freq = (eu_lf_freq == 906875000) ? 913125000 : eu_lf_freq;
     TEST_ASSERT(eu_mf_freq == 869525000, "EU868 MediumFast preserves 869.525 MHz");
-
-    // MeshCore local standard frequency mapping
-    uint32_t us_mc_freq = (us_lf_freq == 906875000) ? 910525000 : us_lf_freq;
-    TEST_ASSERT(us_mc_freq == 910525000, "US915 MeshCore uses 910.525 MHz local standard");
-
-    uint32_t eu_mc_freq = (eu_lf_freq == 906875000) ? 910525000 : eu_lf_freq;
-    TEST_ASSERT(eu_mc_freq == 869525000, "EU868 MeshCore preserves configured frequency");
 }
 
 /* ========================================================================= */
@@ -517,7 +461,6 @@ static void test_config_ini_commented_defaults(void) {
     int16_t nmea_offset_ms = 60;
     bool enable_ntp = true;
     bool enable_wifi = false;
-    bool enable_meshcore = false;
     uint8_t position_precision = 18;
 
     char buf[256];
@@ -559,7 +502,6 @@ static void test_config_ini_commented_defaults(void) {
         } else if (strcmp(current_section, "services") == 0) {
             if (strcmp(key, "ntp") == 0) enable_ntp = (strcmp(val, "true") == 0);
             if (strcmp(key, "wifi") == 0) enable_wifi = (strcmp(val, "true") == 0);
-            if (strcmp(key, "meshcore") == 0) enable_meshcore = (strcmp(val, "true") == 0);
             if (strcmp(key, "position_precision") == 0) position_precision = (uint8_t)atoi(val);
         }
     }
@@ -570,7 +512,6 @@ static void test_config_ini_commented_defaults(void) {
     TEST_ASSERT(nmea_offset_ms == 60, "Commented nmea_offset_ms preserves default (60)");
     TEST_ASSERT(enable_ntp == true, "Commented ntp preserves default (true)");
     TEST_ASSERT(enable_wifi == true, "Uncommented wifi applied (true)");
-    TEST_ASSERT(enable_meshcore == false, "Commented meshcore preserves default (false)");
     TEST_ASSERT(position_precision == 18, "Commented position_precision preserves default (18)");
 }
 
@@ -705,7 +646,6 @@ int main(void) {
     test_meshtastic_telemetry_layout();
     test_meshtastic_nodeinfo_layout();
     test_meshtastic_sync_word();
-    test_meshcore_packet_layout();
     test_lora_rotation_schedule();
     test_regulatory_frequencies();
     test_time_sync_pps_and_offset();

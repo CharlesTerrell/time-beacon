@@ -20,7 +20,6 @@ typedef struct {
     bool enable_wifi;
     bool enable_ntp;
     bool enable_ble;
-    bool enable_meshcore;
     bool enable_meshtastic;
     bool enable_ble_battery;
     bool enable_lora_power;

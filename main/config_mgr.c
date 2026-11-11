@@ -115,7 +115,6 @@ static void load_defaults(app_config_t *cfg) {
     cfg->enable_wifi = true;
     cfg->enable_ntp = true;
     cfg->enable_ble = true;
-    cfg->enable_meshcore = false;
     cfg->enable_meshtastic = true;
     cfg->enable_ble_battery = true;
     cfg->enable_lora_power = true;
@@ -174,8 +173,6 @@ esp_err_t config_mgr_write_default_ini(const char *path) {
     fprintf(f, "# ntp = %s\n\n", s_config.enable_ntp ? "true" : "false");
     fprintf(f, "# Bluetooth Low Energy (CTS 0x1805 Current Time Service & Power Telemetry):\n");
     fprintf(f, "# bluetooth = %s\n\n", s_config.enable_ble ? "true" : "false");
-    fprintf(f, "# Periodic MeshCore binary time beacon broadcasts over LoRa:\n");
-    fprintf(f, "# meshcore = %s\n\n", s_config.enable_meshcore ? "true" : "false");
     fprintf(f, "# Periodic Meshtastic POSITION_APP and TELEMETRY_APP broadcasts over LoRa:\n");
     fprintf(f, "# meshtastic = %s\n\n", s_config.enable_meshtastic ? "true" : "false");
     fprintf(f, "# Location precision in bits for Meshtastic POSITION_APP (default: 18):\n");
@@ -295,8 +292,6 @@ static void parse_ini_file(FILE *f, app_config_t *cfg) {
                 cfg->enable_pps = parse_bool(val, cfg->enable_pps);
             } else if (strcasecmp(key, "bluetooth") == 0 || strcasecmp(key, "ble") == 0) {
                 cfg->enable_ble = parse_bool(val, cfg->enable_ble);
-            } else if (strcasecmp(key, "meshcore") == 0) {
-                cfg->enable_meshcore = parse_bool(val, cfg->enable_meshcore);
             } else if (strcasecmp(key, "meshtastic") == 0) {
                 cfg->enable_meshtastic = parse_bool(val, cfg->enable_meshtastic);
             } else if (strcasecmp(key, "position_precision") == 0 || strcasecmp(key, "precision_bits") == 0) {
@@ -333,10 +328,6 @@ static void parse_ini_file(FILE *f, app_config_t *cfg) {
             } else if (strcasecmp(key, "tx_power") == 0 || strcasecmp(key, "power") == 0) {
                 int p_val = atoi(val);
                 if (p_val >= 0 && p_val <= 22) cfg->lora_tx_power = (int8_t)p_val;
-            }
-        } else if (strcmp(current_section, "meshcore") == 0) {
-            if (strcasecmp(key, "enable") == 0 || strcasecmp(key, "enabled") == 0) {
-                cfg->enable_meshcore = parse_bool(val, cfg->enable_meshcore);
             }
         } else if (strcmp(current_section, "meshtastic") == 0) {
             if (strcasecmp(key, "enable") == 0 || strcasecmp(key, "enabled") == 0) {
@@ -413,9 +404,9 @@ esp_err_t config_mgr_init(void) {
         fclose(f);
         ESP_LOGI(TAG, "Device: NodeName='%s', Country='%s', LEDPeak=%u%%",
                  s_config.node_name, s_config.country_code, (unsigned int)s_config.led_peak_percent);
-        ESP_LOGI(TAG, "Services: WiFi=%d NTP=%d BLE=%d MeshCore=%d Meshtastic=%d (LoRa %luHz, %ddBm)",
+        ESP_LOGI(TAG, "Services: WiFi=%d NTP=%d BLE=%d Meshtastic=%d (LoRa %luHz, %ddBm)",
                  s_config.enable_wifi, s_config.enable_ntp, s_config.enable_ble,
-                 s_config.enable_meshcore, s_config.enable_meshtastic,
+                 s_config.enable_meshtastic,
                  (unsigned long)s_config.lora_freq_hz, (int)s_config.lora_tx_power);
     }
 
