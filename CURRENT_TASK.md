@@ -1,15 +1,22 @@
-# Task: Update Agent Rules, Task Management, and Recommended CLI Tools
+# Task: Build Environment Portability and Top-Level README
 
 ## Task Goal
-Update `AGENTS.md` and `CURRENT_TASK.md` to reflect current project architecture:
-1. Support ESP-IDF v5.x and v6.x targets (`-std=gnu17` / `-std=gnu23`).
-2. Remove obsolete `TODO.md` references (archived to `docs/ref/early-roadmap.md`).
-3. Add recommended development and debugging tools (`tio`, `rg`, `idf.py monitor`).
-4. Maintain strict contract: static memory, error handling, fixed-width types, board pin constants, and auto-commit on clean verification.
+Improve developer onboarding and build portability:
+1. Create `tools/idf_env.sh`: Fast, source-able environment activator that checks `IDF_PATH`, standard `~/.espressif/v*/esp-idf` and `~/esp/esp-idf` locations, with caching to avoid slow exports.
+2. Update `build_tracker.sh` to leverage portable discovery without hardcoding user-specific paths.
+3. Create top-level `README.md` with:
+   - Project overview (Stratum-1 GPS Time Beacon with Wi-Fi NTP, BLE CTS, and Meshtastic LoRa).
+   - Supported hardware.
+   - Prerequisites & ESP-IDF setup.
+   - Build, test, and flash instructions.
+   - Configuration via `time_beacon.ini`.
+   - Links to design documentation in `docs/plan/`.
 
 ## Allowed Files to Edit
-- `AGENTS.md`
 - `CURRENT_TASK.md`
+- `build_tracker.sh`
+- `tools/idf_env.sh`
+- `README.md`
 
 ## Verification Command
 ```bash
@@ -17,6 +24,8 @@ Update `AGENTS.md` and `CURRENT_TASK.md` to reflect current project architecture
 ```
 
 ## Checklist
-- [x] Update `AGENTS.md` with ESP-IDF v5.x/v6.x target, remove `TODO.md`, and document CLI tools.
+- [x] Create `tools/idf_env.sh`.
+- [x] Update `build_tracker.sh` for portable IDF detection.
+- [x] Create `README.md`.
 - [x] Verify build and tests pass with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.

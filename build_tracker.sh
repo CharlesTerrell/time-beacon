@@ -5,18 +5,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Check if we have idf.py
+# Locate and load ESP-IDF if idf.py is not in PATH
 if command -v idf.py >/dev/null 2>&1; then
-    echo "idf.py detected"
-elif [ -n "$IDF_PATH" ] && [ -f "$IDF_PATH/export.sh" ]; then
+    echo "idf.py detected: $(command -v idf.py)"
+elif [ -f "$SCRIPT_DIR/tools/idf_env.sh" ]; then
+    . "$SCRIPT_DIR/tools/idf_env.sh"
+elif [ -n "${IDF_PATH:-}" ] && [ -f "$IDF_PATH/export.sh" ]; then
     echo "Loading esp-idf from IDF_PATH ($IDF_PATH)..."
     . "$IDF_PATH/export.sh"
-elif [ -f "$HOME/esp-idf/export.sh" ]; then
-    echo "Loading esp-idf from $HOME/esp-idf/export.sh..."
-    . "$HOME/esp-idf/export.sh"
-elif [ -f "$HOME/.espressif/v6.1/esp-idf/export.sh" ]; then
-    echo "Loading esp-idf from $HOME/.espressif/v6.1/esp-idf/export.sh..."
-    . "$HOME/.espressif/v6.1/esp-idf/export.sh"
 else
     echo "Warning: idf.py not found in PATH."
 fi
