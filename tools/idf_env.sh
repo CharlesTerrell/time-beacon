@@ -2,52 +2,19 @@
 # Source this file to activate the ESP-IDF environment for Time Beacon:
 #   source tools/idf_env.sh
 
-# Fast path: Use cached environment file if present and valid
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [ -f "$SCRIPT_DIR/.env.esp" ]; then
-    . "$SCRIPT_DIR/.env.esp"
-    if command -v idf.py >/dev/null 2>&1; then
-        echo "ESP-IDF activated from cached .env.esp: $(command -v idf.py)"
-        return 0 2>/dev/null || exit 0
-    fi
+# Fast path: already active
+if command -v idf.py >/dev/null 2>&1; then
+    return 0 2>/dev/null || exit 0
 fi
-    # 1. Already in PATH
-    if command -v idf.py >/dev/null 2>&1; then
-        return 0
-    fi
 
-    # 2. IDF_PATH already set in environment
-    if [ -n "${IDF_PATH:-}" ] && [ -f "$IDF_PATH/export.sh" ]; then
-        echo "$IDF_PATH/export.sh"
-        return 0
-    fi
-
-    # 3. Standard Espressif v6.x or v5.x directory
-    for p in "$HOME/.espressif/v6."*/esp-idf/export.sh \
-             "$HOME/.espressif/v5."*/esp-idf/export.sh \
-             "$HOME/esp-idf/export.sh" \
-             "$HOME/esp/esp-idf/export.sh" \
-             "/opt/esp-idf/export.sh"; do
-        if [ -f "$p" ]; then
-            echo "$p"
-            return 0
-        fi
-    done
-
-    return 1
-}
+# Direct path export: Instant, no python subprocess hanging
+export IDF_PATH="${IDF_PATH:-/home/charlie/.espressif/v6.1/esp-idf}"
+export ESP_IDF_VERSION="6.1"
+export OPENOCD_SCRIPTS="/home/charlie/.espressif/tools/openocd-esp32/v0.12.0-esp32-20260703/openocd-esp32/share/openocd/scripts"
+export ESP_ROM_ELF_DIR="/home/charlie/.espressif/tools/esp-rom-elfs/20241011/"
+export IDF_PYTHON_ENV_PATH="/home/charlie/.espressif/python_env/idf6.1_py3.14_env"
+export PATH="/home/charlie/.espressif/tools/xtensa-esp-elf-gdb/17.1_20260402/xtensa-esp-elf-gdb/bin:/home/charlie/.espressif/tools/riscv32-esp-elf-gdb/17.1_20260402/riscv32-esp-elf-gdb/bin:/home/charlie/.espressif/tools/xtensa-esp-elf/esp-15.2.0_20251204/xtensa-esp-elf/bin:/home/charlie/.espressif/tools/esp-clang/esp-21.1.3_20260408/esp-clang/bin:/home/charlie/.espressif/tools/riscv32-esp-elf/esp-15.2.0_20251204/riscv32-esp-elf/bin:/home/charlie/.espressif/tools/esp32ulp-elf/2.38_20240113/esp32ulp-elf/bin:/home/charlie/.espressif/tools/openocd-esp32/v0.12.0-esp32-20260703/openocd-esp32/bin:/home/charlie/.espressif/tools/ninja/1.12.1/:/home/charlie/.espressif/tools/esp-clangd/esp-21.1.3_20260408/esp-clangd/bin:/home/charlie/.espressif/python_env/idf6.1_py3.14_env/bin:/home/charlie/.espressif/v6.1/esp-idf/tools:$PATH"
 
 if command -v idf.py >/dev/null 2>&1; then
-    echo "ESP-IDF already active: $(command -v idf.py)"
-else
-    EXPORT_PATH="$(_find_idf_export || true)"
-    if [ -n "$EXPORT_PATH" ] && [ -f "$EXPORT_PATH" ]; then
-        echo "Activating ESP-IDF from $EXPORT_PATH..."
-        # Source without polluting shell options
-        . "$EXPORT_PATH"
-    else
-        echo "Error: Could not locate ESP-IDF export.sh." >&2
-        echo "Please set IDF_PATH or install ESP-IDF v5.x/v6.x." >&2
-        return 1 2>/dev/null || exit 1
-    fi
+    echo "ESP-IDF activated: $(command -v idf.py)"
 fi
