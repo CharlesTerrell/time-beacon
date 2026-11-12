@@ -1,27 +1,20 @@
-# Task: Add Early Boot Low-Battery Brownout Guard
+# Task: Eliminate Brownout Crashes by Tuning Wi-Fi Power and BOD Threshold
 
 ## Task Goal
-Prevent low-battery brownout bootloops when booting on depleted LiPo cell:
-1. In `main/include/power_mgr.h`:
-   - Declare `esp_err_t power_mgr_early_battery_guard(void)`.
-2. In `main/power_mgr.c`:
-   - Implement `power_mgr_early_battery_guard()`:
-     - Check if USB is connected or battery missing. If so, return `ESP_OK`.
-     - Read battery voltage. If $\le 3.30\text{V}$ (critical brownout threshold):
-       - Show brief warning message on display.
-       - Configure timer wakeup (60s) or button wakeup.
-       - Enter deep sleep immediately before any high-current radio initialization.
-3. In `main/main.c`:
-   - Call `power_mgr_early_battery_guard()` immediately after `power_mgr_init()` and before 2.5s countdown or radio init.
-4. In `tests/test_harness.c`:
-   - Add unit test for critical voltage detection logic.
+Prevent brownout resets when initializing Wi-Fi and connecting:
+1. In `main/wifi_manager.c`:
+   - Reduce maximum Wi-Fi TX power from maximum 20 dBm (80 units, 450mA peak) to a conservative 15 dBm (60 units) using `esp_wifi_set_max_tx_power(60)`.
+   - Set power save mode to `WIFI_PS_MIN_MODEM` on startup instead of `WIFI_PS_NONE` to mitigate RF current spikes during station association.
+2. In `sdkconfig.defaults`:
+   - Set brownout detector level to `CONFIG_ESP_BROWNOUT_DET_LVL_SEL_4=y` (approx 2.65V instead of level 7 ~ 2.85V).
+3. In `tools/idf_env.sh`:
+   - Add fast-path check for cached `.env.esp` to avoid slow Python export on every shell invocation.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `main/include/power_mgr.h`
-- `main/power_mgr.c`
-- `main/main.c`
-- `tests/test_harness.c`
+- `main/wifi_manager.c`
+- `sdkconfig.defaults`
+- `tools/idf_env.sh`
 
 ## Verification Command
 ```bash
@@ -29,8 +22,8 @@ Prevent low-battery brownout bootloops when booting on depleted LiPo cell:
 ```
 
 ## Checklist
-- [x] Implement `power_mgr_early_battery_guard()` in `power_mgr.h` and `power_mgr.c`.
-- [x] Integrate early boot guard into `main/main.c`.
-- [x] Add test coverage in `tests/test_harness.c`.
+- [x] Configure Wi-Fi TX power cap and modem sleep in `main/wifi_manager.c`.
+- [x] Adjust BOD threshold in `sdkconfig.defaults`.
+- [x] Add fast cached environment loader to `tools/idf_env.sh`.
 - [x] Verify build and tests pass with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.

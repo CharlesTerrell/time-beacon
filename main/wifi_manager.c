@@ -101,8 +101,15 @@ esp_err_t wifi_manager_init(const app_config_t *cfg) {
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
-    ESP_LOGI(TAG, "Wi-Fi modem sleep disabled (WIFI_PS_NONE)");
+    // Cap Wi-Fi TX power to ~15 dBm (60 * 0.25 dBm) to prevent peak RF current
+    // spikes from sagging the power rail and triggering the brownout detector.
+    esp_err_t pwr_err = esp_wifi_set_max_tx_power(60);
+    if (pwr_err == ESP_OK) {
+        ESP_LOGI(TAG, "Wi-Fi max TX power capped to 15 dBm to protect power rail");
+    }
+
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));
+    ESP_LOGI(TAG, "Wi-Fi modem sleep enabled (WIFI_PS_MIN_MODEM)");
 
     return ESP_OK;
 }

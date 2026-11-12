@@ -2,8 +2,15 @@
 # Source this file to activate the ESP-IDF environment for Time Beacon:
 #   source tools/idf_env.sh
 
-# Do not exit if sourced in an interactive terminal
-_find_idf_export() {
+# Fast path: Use cached environment file if present and valid
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ -f "$SCRIPT_DIR/.env.esp" ]; then
+    . "$SCRIPT_DIR/.env.esp"
+    if command -v idf.py >/dev/null 2>&1; then
+        echo "ESP-IDF activated from cached .env.esp: $(command -v idf.py)"
+        return 0 2>/dev/null || exit 0
+    fi
+fi
     # 1. Already in PATH
     if command -v idf.py >/dev/null 2>&1; then
         return 0
