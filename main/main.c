@@ -25,6 +25,9 @@ void app_main(void) {
     ESP_ERROR_CHECK(display_init());
     ESP_ERROR_CHECK(power_mgr_init());
 
+    // Brownout guard: Check battery voltage BEFORE starting countdown or radios
+    ESP_ERROR_CHECK(power_mgr_early_battery_guard());
+
     // 2.5s prompt: Check if USER button is pressed to enter Config Mode
     bool enter_config = false;
     for (int i = 25; i > 0; i--) {

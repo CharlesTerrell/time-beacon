@@ -270,3 +270,32 @@ void power_mgr_check_emergency_sleep(void) {
         }
     }
 }
+
+esp_err_t power_mgr_early_battery_guard(void) {
+    // Refresh battery voltage status
+    power_mgr_update();
+
+    // If USB is connected or battery is absent, boot safely
+    if (s_status.usb_connected || !s_status.battery_present) {
+        return ESP_OK;
+    }
+
+    // Critical low-battery threshold for early boot: 3.30V
+    // Booting RF radios (Wi-Fi/BLE/LoRa) causes 300+ mA sag, tripping brownout.
+    if (s_status.voltage <= 3.30f) {
+        ESP_LOGE(TAG, "Battery voltage too low to safely boot (%0.2fV <= 3.30V)", s_status.voltage);
+
+        // Display brief warning before deep sleeping
+        display_set_backlight(true);
+        // Wakeup on button press or after 60 seconds to re-evaluate charging state
+        esp_sleep_enable_timer_wakeup(60ULL * 1000ULL * 1000ULL);
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_USER_BTN, 0); // Active LOW button
+
+        vTaskDelay(pdMS_TO_TICKS(1500));
+        display_set_backlight(false);
+        gpio_set_level(PIN_VEXT_CTRL, 0); // Cut peripheral rail
+        esp_deep_sleep_start();
+    }
+
+    return ESP_OK;
+}

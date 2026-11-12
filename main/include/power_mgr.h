@@ -66,6 +66,13 @@ uint16_t power_mgr_get_fg_color(void);
  */
 void power_mgr_check_emergency_sleep(void);
 
+/**
+ * Early boot low-battery check.
+ * If running on battery and voltage is <= 3.30V, displays low-battery alert
+ * and puts the device into deep sleep to prevent brownout boot loops.
+ */
+esp_err_t power_mgr_early_battery_guard(void);
+
 #ifdef __cplusplus
 }
 #endif

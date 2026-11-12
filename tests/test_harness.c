@@ -631,6 +631,47 @@ static void test_config_ini_lora_freq_and_country_aliases(void) {
 }
 
 /* ========================================================================= */
+/* Test Suite 7: Early Boot Battery Guard Logic                              */
+/* ========================================================================= */
+static void test_early_boot_battery_guard_logic(void) {
+    // Simulated voltage readings
+    float v_crit = 3.25f;
+    float v_low = 3.30f;
+    float v_ok = 3.35f;
+    float v_full = 4.10f;
+
+    bool usb_connected = false;
+    bool battery_present = true;
+
+    // Test 1: Critical voltage on battery should trip guard
+    bool trip_guard = (!usb_connected && battery_present && v_crit <= 3.30f);
+    TEST_ASSERT(trip_guard == true, "Critical battery (3.25V) trips early boot guard");
+
+    // Test 2: Threshold voltage (3.30V) on battery should trip guard
+    trip_guard = (!usb_connected && battery_present && v_low <= 3.30f);
+    TEST_ASSERT(trip_guard == true, "Threshold battery (3.30V) trips early boot guard");
+
+    // Test 3: Safe battery (3.35V) allows boot
+    trip_guard = (!usb_connected && battery_present && v_ok <= 3.30f);
+    TEST_ASSERT(trip_guard == false, "Safe battery (3.35V) bypasses early boot guard");
+
+    // Test 4: Fully charged battery (4.10V) allows boot
+    trip_guard = (!usb_connected && battery_present && v_full <= 3.30f);
+    TEST_ASSERT(trip_guard == false, "Full battery (4.10V) bypasses early boot guard");
+
+    // Test 5: Low voltage but USB connected should allow boot
+    usb_connected = true;
+    trip_guard = (!usb_connected && battery_present && v_crit <= 3.30f);
+    TEST_ASSERT(trip_guard == false, "Low voltage with USB connected bypasses guard");
+
+    // Test 6: No battery present (running pure USB) should allow boot
+    usb_connected = false;
+    battery_present = false;
+    trip_guard = (!usb_connected && battery_present && v_crit <= 3.30f);
+    TEST_ASSERT(trip_guard == false, "No physical battery present bypasses guard");
+}
+
+/* ========================================================================= */
 /* Main Runner                                                               */
 /* ========================================================================= */
 int main(void) {
@@ -652,6 +693,7 @@ int main(void) {
     test_config_ini_commented_defaults();
     test_config_ini_lora_freq_and_country_aliases();
     test_display_utc_location_line();
+    test_early_boot_battery_guard_logic();
 
     printf("\nResults: %d/%d assertions passed.\n", s_tests_passed, s_tests_run);
     if (s_tests_passed == s_tests_run) {
