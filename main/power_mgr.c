@@ -181,21 +181,21 @@ void power_mgr_update(void) {
     s_status.percentage = (int)pct;
 
     // Power mode determination
-    if (usb_active || battery_missing || s_status.voltage > 4.18f) {
+    if (s_status.battery_present && s_status.voltage <= VBAT_CRITICAL_V) {
+        // Battery present and critically low: Warning mode even if USB is plugged in
+        s_status.mode = POWER_MODE_BATTERY_CRITICAL;
+        s_status.usb_connected = usb_active;
+        if (s_status.critical_countdown_sec < 0) {
+            s_status.critical_countdown_sec = 30; // 30s countdown before sleep
+        }
+    } else if (usb_active || battery_missing || s_status.voltage > 4.18f) {
         s_status.mode = POWER_MODE_USB;
         s_status.usb_connected = true;
         s_status.critical_countdown_sec = -1;
     } else {
         s_status.usb_connected = false;
-        if (s_status.voltage <= VBAT_CRITICAL_V) {
-            s_status.mode = POWER_MODE_BATTERY_CRITICAL;
-            if (s_status.critical_countdown_sec < 0) {
-                s_status.critical_countdown_sec = 30; // 30s countdown before sleep
-            }
-        } else {
-            s_status.mode = POWER_MODE_BATTERY;
-            s_status.critical_countdown_sec = -1;
-        }
+        s_status.mode = POWER_MODE_BATTERY;
+        s_status.critical_countdown_sec = -1;
     }
 }
 
@@ -275,25 +275,27 @@ esp_err_t power_mgr_early_battery_guard(void) {
     // Refresh battery voltage status
     power_mgr_update();
 
-    // If USB is connected or battery is absent, boot safely
-    if (s_status.usb_connected || !s_status.battery_present) {
+    // If running on pure USB without any battery attached, boot safely
+    if (!s_status.battery_present) {
         return ESP_OK;
     }
 
-    // Critical low-battery threshold for early boot: 3.30V
-    // Booting RF radios (Wi-Fi/BLE/LoRa) causes 300+ mA sag, tripping brownout.
-    if (s_status.voltage <= 3.30f) {
-        ESP_LOGE(TAG, "Battery voltage too low to safely boot (%0.2fV <= 3.30V)", s_status.voltage);
+    // Critical low-battery threshold for early boot: 3.25V
+    // If a depleted battery is connected, TP4054 charger draws full 500mA.
+    // Booting Wi-Fi + BLE + LoRa on top of that sags the 5V/3.3V rail and bootloops.
+    if (s_status.voltage <= 3.25f) {
+        ESP_LOGE(TAG, "Battery voltage too low for safe boot (%0.2fV <= 3.25V, USB=%d)",
+                 s_status.voltage, s_status.usb_connected);
 
-        // Display brief warning before deep sleeping
+        // Display brief warning before deep sleeping to allow charging
         display_set_backlight(true);
-        // Wakeup on button press or after 60 seconds to re-evaluate charging state
+        // Wakeup on button press or after 60 seconds to re-evaluate charging progress
         esp_sleep_enable_timer_wakeup(60ULL * 1000ULL * 1000ULL);
         esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_USER_BTN, 0); // Active LOW button
 
         vTaskDelay(pdMS_TO_TICKS(1500));
         display_set_backlight(false);
-        gpio_set_level(PIN_VEXT_CTRL, 0); // Cut peripheral rail
+        gpio_set_level(PIN_VEXT_CTRL, 0); // Cut peripheral rail (GNSS + display)
         esp_deep_sleep_start();
     }
 

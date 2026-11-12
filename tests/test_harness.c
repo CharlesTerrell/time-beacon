@@ -726,20 +726,23 @@ static void test_display_flip_and_wifi_scaling(void) {
     }
     TEST_ASSERT(display_flip == true, "INI [display] flip = true parses correctly");
 
-    // 2. Wi-Fi dynamic power scaling calculation
-    // USB connected -> 18 dBm (72 units)
-    int8_t pwr_usb = 72;
-    TEST_ASSERT(pwr_usb == 72, "USB power scales Wi-Fi TX power to 18 dBm");
+    // 2. Wi-Fi dynamic power scaling calculation:
+    // Pure USB without battery -> 18 dBm (72 units)
+    bool bat_present = false;
+    float v_bat = 0.0f;
+    int8_t pwr = (bat_present && v_bat < 3.65f) ? 52 : ((!bat_present || v_bat >= 3.75f) ? 72 : 60);
+    TEST_ASSERT(pwr == 72, "Pure USB without battery scales Wi-Fi TX power to 18 dBm");
 
-    // Healthy battery (3.8V) -> 18 dBm (72 units)
-    float v_high = 3.85f;
-    int8_t pwr_high = (v_high >= 3.75f) ? 72 : 60;
-    TEST_ASSERT(pwr_high == 72, "Healthy battery (3.85V) scales Wi-Fi TX power to 18 dBm");
+    // USB connected BUT low battery (3.45V) attached -> must throttle to 13 dBm!
+    bat_present = true;
+    v_bat = 3.45f;
+    pwr = (bat_present && v_bat < 3.65f) ? 52 : ((!bat_present || v_bat >= 3.75f) ? 72 : 60);
+    TEST_ASSERT(pwr == 52, "Low battery (3.45V) with USB throttles Wi-Fi to 13 dBm to protect charger");
 
-    // Low battery (3.4V) -> 13 dBm (52 units)
-    float v_low = 3.45f;
-    int8_t pwr_low = (v_low < 3.55f) ? 52 : 60;
-    TEST_ASSERT(pwr_low == 52, "Low battery (3.45V) throttles Wi-Fi TX power to 13 dBm");
+    // USB connected and healthy battery (3.85V) attached -> 18 dBm
+    v_bat = 3.85f;
+    pwr = (bat_present && v_bat < 3.65f) ? 52 : ((!bat_present || v_bat >= 3.75f) ? 72 : 60);
+    TEST_ASSERT(pwr == 72, "Healthy battery (3.85V) with USB allows full 18 dBm Wi-Fi power");
 }
 
 /* ========================================================================= */

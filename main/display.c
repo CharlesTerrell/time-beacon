@@ -252,7 +252,7 @@ static void display_refresh_task(void *pvParameters) {
             power_status_t pwr;
             power_mgr_get_status(&pwr);
             ble_cts_service_update_power((uint8_t)pwr.percentage, (uint16_t)(pwr.voltage * 1000.0f), pwr.usb_connected);
-            wifi_manager_update_power(pwr.usb_connected, pwr.voltage);
+            wifi_manager_update_power(pwr.usb_connected, pwr.battery_present, pwr.voltage);
             if (pwr.mode == POWER_MODE_BATTERY_CRITICAL && !s_backlight_on) {
                 display_set_backlight(true);
                 s_last_activity_us = esp_timer_get_time();

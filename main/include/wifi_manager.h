@@ -15,10 +15,11 @@ esp_err_t wifi_manager_get_ip(char *ip_str, size_t max_len);
 
 /**
  * Dynamically scale Wi-Fi transmit power based on USB power and battery voltage:
- * - On USB or healthy battery (>= 3.70V): 18 dBm for max range.
- * - On low battery (< 3.60V): 14 dBm to protect against brownout voltage sags.
+ * - When battery is present and low (< 3.65V), throttles to 13 dBm regardless of USB
+ *   so the onboard LiPo charger has full current budget.
+ * - On USB without battery, or with healthy battery (>= 3.75V): boosts to 18 dBm.
  */
-void wifi_manager_update_power(bool usb_connected, float battery_voltage);
+void wifi_manager_update_power(bool usb_connected, bool battery_present, float battery_voltage);
 
 #ifdef __cplusplus
 }

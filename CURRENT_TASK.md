@@ -1,35 +1,30 @@
-# Task: Dynamic Radio Power Scaling and User-Configurable Screen Orientation
+# Task: Prioritize Battery Protection Over USB Status in Power Management
 
 ## Task Goal
-1. Dynamic Radio Power Scaling:
-   - In `main/include/wifi_manager.h` and `main/wifi_manager.c`:
-     - Implement `void wifi_manager_update_power(bool usb_connected, float battery_voltage)`.
-     - When USB is connected or battery is healthy ($\ge 3.75\text{V}$), scale Wi-Fi TX power up to 18 dBm (`esp_wifi_set_max_tx_power(72)`) for long range.
-     - When running on depleted battery ($< 3.55\text{V}$), scale Wi-Fi TX power down to 13 dBm (`esp_wifi_set_max_tx_power(52)`) to protect against brownout voltage sags.
-   - In `main/display.c`:
-     - In `display_refresh_task()`, call `wifi_manager_update_power()` on each status tick (~1s).
-2. User-Configurable Screen Orientation (0° / 180° flip):
-   - In `main/include/config_mgr.h`:
-     - Add `bool display_flip` to `app_config_t`.
-   - In `main/config_mgr.c`:
-     - Support `[display] flip = true/false` in `config.ini`.
-     - Expose `esp_err_t config_mgr_set_display_flip(bool flip)` to persist to NVS/config.
-   - In `main/include/display.h` and `main/display.c`:
-     - Support 180° orientation flipping dynamically via `display_set_flip(bool flip)`.
-     - On user button press while screen is awake:
-       - Debounce and detect click.
-       - Toggle display flip between normal (`0x68`) and inverted (`0xA8`).
-       - Persist flip state so it survives reboot.
-3. In `tests/test_harness.c`:
-   - Add unit tests for `display_flip` configuration parsing and dynamic TX power calculation.
+Prevent brownout resets when running with a low battery connected to USB:
+1. In `main/wifi_manager.c` & `main/include/wifi_manager.h`:
+   - Update `wifi_manager_update_power(bool usb_connected, bool battery_present, float battery_voltage)`.
+   - Priority rule:
+     - If physical battery is present and $< 3.65\text{V}$, limit Wi-Fi TX power to 13 dBm (`esp_wifi_set_max_tx_power(52)`), regardless of USB connection, to leave maximum current budget for the onboard charger.
+     - Only boost to 18 dBm if:
+       - No battery is present (`!battery_present`), OR
+       - Battery is healthy ($\ge 3.75\text{V}$).
+2. In `main/power_mgr.c`:
+   - In `power_mgr_early_battery_guard()`:
+     - Check battery voltage first!
+     - If battery is present and $\le 3.25\text{V}$ (deeply discharged / in pre-charge state), do NOT bypass guard simply because USB is connected. If battery is $\le 3.25\text{V}$, enter low-power pre-charge sleep (60s timer) to let TP4054 charge the cell without the CPU/Wi-Fi drawing power.
+   - In `power_mgr_update()`:
+     - If battery is present and $\le \text{VBAT\_CRITICAL\_V}$, mark mode `POWER_MODE_BATTERY_CRITICAL` even if USB is detected, warning user and preserving power until cell reaches safe operating voltage.
+3. In `main/display.c`:
+   - Pass `pwr.battery_present` to `wifi_manager_update_power()`.
+4. In `tests/test_harness.c`:
+   - Update unit tests to verify battery voltage overrides USB status when battery is present.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `main/include/config_mgr.h`
-- `main/config_mgr.c`
 - `main/include/wifi_manager.h`
 - `main/wifi_manager.c`
-- `main/include/display.h`
+- `main/power_mgr.c`
 - `main/display.c`
 - `tests/test_harness.c`
 
@@ -39,9 +34,9 @@
 ```
 
 ## Checklist
-- [x] Add `display_flip` to `config_mgr.h` and `config_mgr.c`.
-- [x] Implement `display_set_flip()` and button toggle in `display.c`.
-- [x] Implement `wifi_manager_update_power()` in `wifi_manager.c`.
-- [x] Add unit test coverage in `tests/test_harness.c`.
+- [x] Update `power_mgr.c` so low battery condition is never masked by USB.
+- [x] Update `wifi_manager.c` and `wifi_manager.h` power scaling rules.
+- [x] Update `display.c` caller.
+- [x] Update unit tests in `tests/test_harness.c`.
 - [x] Verify build and tests pass with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.

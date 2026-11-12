@@ -118,24 +118,28 @@ bool wifi_manager_is_connected(void) {
     return s_connected;
 }
 
-void wifi_manager_update_power(bool usb_connected, float battery_voltage) {
+void wifi_manager_update_power(bool usb_connected, bool battery_present, float battery_voltage) {
     if (!s_connected) return;
 
     static int8_t s_current_power_units = 0;
     int8_t target_units = 60; // Default 15 dBm (60 * 0.25 dBm)
 
-    if (usb_connected || battery_voltage >= 3.75f) {
-        target_units = 72; // 18 dBm (~63 mW) max range
-    } else if (battery_voltage < 3.55f) {
-        target_units = 52; // 13 dBm (~20 mW) low power protection
+    if (battery_present && battery_voltage < 3.65f) {
+        // Battery is charging/low: Throttle Wi-Fi even if USB is connected
+        // to leave full 500mA current budget for the onboard TP4054 charger.
+        target_units = 52; // 13 dBm (~20 mW)
+    } else if (!battery_present || battery_voltage >= 3.75f) {
+        // Pure USB without battery or healthy battery: full power
+        target_units = 72; // 18 dBm (~63 mW)
     } else {
-        target_units = 60; // 15 dBm (~31 mW) balanced
+        // Battery between 3.65V and 3.75V: balanced
+        target_units = 60; // 15 dBm (~31 mW)
     }
 
     if (target_units != s_current_power_units) {
         if (esp_wifi_set_max_tx_power(target_units) == ESP_OK) {
-            ESP_LOGI(TAG, "Wi-Fi TX power scaled to %0.1f dBm (USB=%d, Vbat=%0.2fV)",
-                     (float)target_units * 0.25f, usb_connected, battery_voltage);
+            ESP_LOGI(TAG, "Wi-Fi TX power scaled to %0.1f dBm (USB=%d, BatPresent=%d, Vbat=%0.2fV)",
+                     (float)target_units * 0.25f, usb_connected, battery_present, battery_voltage);
             s_current_power_units = target_units;
         }
     }
