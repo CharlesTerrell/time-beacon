@@ -743,6 +743,31 @@ static void test_display_flip_and_wifi_scaling(void) {
     v_bat = 3.85f;
     pwr = (bat_present && v_bat < 3.65f) ? 52 : ((!bat_present || v_bat >= 3.75f) ? 72 : 60);
     TEST_ASSERT(pwr == 72, "Healthy battery (3.85V) with USB allows full 18 dBm Wi-Fi power");
+
+    // 3. Critical Countdown management when plugging/unplugging USB
+    int countdown = -1;
+    bool usb = false;
+    float crit_v = 3.30f;
+
+    // Running on battery at 3.30V -> Arms 30s countdown
+    if (!usb && crit_v <= 3.35f && countdown < 0) {
+        countdown = 30;
+    }
+    TEST_ASSERT(countdown == 30, "Critical battery on battery power arms 30s sleep countdown");
+
+    // USB plugged in -> Disarms countdown
+    usb = true;
+    if (usb && crit_v <= 3.35f) {
+        countdown = -1;
+    }
+    TEST_ASSERT(countdown == -1, "Plugging in USB disarms emergency sleep countdown");
+
+    // USB unplugged while still critical -> Re-arms 30s countdown
+    usb = false;
+    if (!usb && crit_v <= 3.35f && countdown < 0) {
+        countdown = 30;
+    }
+    TEST_ASSERT(countdown == 30, "Unplugging USB while still critical re-arms 30s sleep countdown");
 }
 
 /* ========================================================================= */

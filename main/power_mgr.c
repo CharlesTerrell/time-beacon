@@ -182,11 +182,19 @@ void power_mgr_update(void) {
 
     // Power mode determination
     if (s_status.battery_present && s_status.voltage <= VBAT_CRITICAL_V) {
-        // Battery present and critically low: Warning mode even if USB is plugged in
+        // Battery present and critically low: Warning mode
         s_status.mode = POWER_MODE_BATTERY_CRITICAL;
         s_status.usb_connected = usb_active;
-        if (s_status.critical_countdown_sec < 0) {
-            s_status.critical_countdown_sec = 30; // 30s countdown before sleep
+
+        if (usb_active) {
+            // Plugged into USB: Charger is active, cancel shutdown countdown
+            s_status.critical_countdown_sec = -1;
+        } else {
+            // Running on battery alone: Arm countdown if not already ticking
+            if (s_status.critical_countdown_sec < 0) {
+                s_status.critical_countdown_sec = 30; // 30s countdown before sleep
+                ESP_LOGW(TAG, "Critical battery on battery power (%0.2fV): Emergency sleep in 30s", s_status.voltage);
+            }
         }
     } else if (usb_active || battery_missing || s_status.voltage > 4.18f) {
         s_status.mode = POWER_MODE_USB;

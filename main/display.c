@@ -185,6 +185,13 @@ void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_t
     if (pwr.mode == POWER_MODE_USB) {
         snprintf(status_str, sizeof(status_str), "N:%lu L:%lu %s USB",
                  (unsigned long)packets, (unsigned long)lora_cnt, ble_status);
+    } else if (pwr.mode == POWER_MODE_BATTERY_CRITICAL && pwr.usb_connected) {
+        // Charging on USB while battery is low
+        snprintf(status_str, sizeof(status_str), "N:%lu L:%lu [CHG] %0.1fV",
+                 (unsigned long)packets, (unsigned long)lora_cnt, pwr.voltage);
+    } else if (pwr.mode == POWER_MODE_BATTERY_CRITICAL && pwr.critical_countdown_sec >= 0) {
+        // Critical countdown ticking before deep sleep
+        snprintf(status_str, sizeof(status_str), "LOW BAT! SLEEP:%ds", pwr.critical_countdown_sec);
     } else {
         snprintf(status_str, sizeof(status_str), "N:%lu L:%lu %s %0.1fV",
                  (unsigned long)packets, (unsigned long)lora_cnt, ble_status, pwr.voltage);
