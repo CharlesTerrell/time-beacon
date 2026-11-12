@@ -1,31 +1,18 @@
-# Task: Dynamic Emergency Sleep Countdown Management with USB Charging
+# Task: Update Power Management and Display Docs for Current Firmware Behavior
 
 ## Task Goal
-Properly handle plugging and unplugging USB while in critical battery state:
-1. In `main/power_mgr.c`:
-   - When in critical battery state ($\text{voltage} \le 3.35\text{V}$):
-     - If running on battery (`!usb_connected`):
-       - If countdown is not running, start 30s emergency sleep countdown (`critical_countdown_sec = 30`).
-       - Countdown decrements each second until 0 $\to$ deep sleep.
-     - If USB is plugged in (`usb_connected == true`):
-       - Cancel and disarm the emergency sleep countdown (`critical_countdown_sec = -1`).
-       - Keep `mode = POWER_MODE_BATTERY_CRITICAL` (or charging warning), maintaining throttled Wi-Fi power (13 dBm) so cell can charge.
-     - If subsequently unplugged from USB while battery is still $\le 3.35\text{V}$:
-       - Re-arm the 30-second emergency sleep countdown immediately (`critical_countdown_sec = 30`).
-2. In `main/display.c`:
-   - In `display_update()` / status formatting:
-     - When `mode == POWER_MODE_BATTERY_CRITICAL` and USB is connected, indicate charging status cleanly (e.g. `[CHG]`).
-3. In `tests/test_harness.c`:
-   - Add unit tests verifying:
-     - Critical battery on battery starts 30s countdown.
-     - Connecting USB disarms countdown to -1.
-     - Disconnecting USB while still critical re-arms countdown to 30s.
+Update `docs/plan/power_management.md` and `docs/plan/display_management.md` to document:
+1. Dynamic Wi-Fi TX power scaling (18 dBm on USB/healthy battery, throttled to 13 dBm when battery $< 3.65\text{V}$ to protect the onboard TP4054 charger).
+2. Battery priority rule: Low battery state and power throttling always take precedence over USB presence.
+3. USB Host vs. Wall Charger behavior (`usb_serial_jtag_is_connected()` vs. terminal voltage jump under charging load).
+4. Early boot brownout guard and 60-second deep sleep recovery cycle.
+5. Critical battery shutdown countdown cancellation when USB is plugged in, and re-arming when unplugged.
+6. User-configurable and runtime 180° screen orientation flipping via `USER` button and `[display] flip` in `config.ini`.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `main/power_mgr.c`
-- `main/display.c`
-- `tests/test_harness.c`
+- `docs/plan/power_management.md`
+- `docs/plan/display_management.md`
 
 ## Verification Command
 ```bash
@@ -33,8 +20,7 @@ Properly handle plugging and unplugging USB while in critical battery state:
 ```
 
 ## Checklist
-- [x] Implement USB disarm and re-arm logic in `power_mgr.c`.
-- [x] Update display telemetry indicators in `display.c`.
-- [x] Add unit test coverage in `tests/test_harness.c`.
+- [x] Update `docs/plan/power_management.md`.
+- [x] Update `docs/plan/display_management.md`.
 - [x] Verify build and tests pass with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.
