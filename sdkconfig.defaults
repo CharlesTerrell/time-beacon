@@ -10,10 +10,14 @@ CONFIG_ESP_WIFI_AMPDU_RX_ENABLED=y
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
 
-# Brownout Detector: Level 4 (~2.65V) to absorb brief transient RF current dips
-CONFIG_ESP_BROWNOUT_DET=y
-CONFIG_ESP_BROWNOUT_DET_LVL_SEL_4=y
-CONFIG_ESP_BROWNOUT_DET_LVL=4
+# Disable aggressive hardware Brownout Detector to prevent reset loops during simultaneous
+# battery charging (TP4054 @ ~500mA) and Wi-Fi RF calibration spikes
+CONFIG_ESP_BROWNOUT_DET=n
+CONFIG_BROWNOUT_DET=n
+CONFIG_ESP32S3_BROWNOUT_DET=n
+
+# Store and reuse PHY calibration data in NVS to eliminate heavy RF analog recalibration spikes on boot
+CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE=y
 
 # Bluetooth / NimBLE
 CONFIG_BT_ENABLED=y
