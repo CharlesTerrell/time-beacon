@@ -21,8 +21,27 @@
 static const char *TAG = "display";
 static spi_device_handle_t s_spi = NULL;
 static bool s_backlight_on = true;
+static bool s_flipped = false;
 static int64_t s_last_activity_us = 0;
 static uint16_t s_framebuf[TFT_WIDTH * TFT_HEIGHT];
+
+static void tft_cmd(uint8_t cmd);
+static void tft_data_byte(uint8_t val);
+
+void display_set_flip(bool flip) {
+    s_flipped = flip;
+    if (s_spi) {
+        tft_cmd(0x36); // Memory Access Control
+        // 0x68 = Landscape (0 deg), 0xA8 = Landscape inverted (180 deg)
+        tft_data_byte(s_flipped ? 0xA8 : 0x68);
+        ESP_LOGI(TAG, "Display orientation set to %d deg", s_flipped ? 180 : 0);
+    }
+}
+
+void display_toggle_flip(void) {
+    display_set_flip(!s_flipped);
+    config_mgr_set_display_flip(s_flipped);
+}
 
 static void tft_cmd(uint8_t cmd) {
     gpio_set_level(PIN_TFT_DC, 0);
@@ -201,16 +220,27 @@ void display_show_config_mode(void) {
 static void display_refresh_task(void *pvParameters) {
     (void)pvParameters;
     uint32_t tick_count = 0;
+    bool prev_btn_state = true; // Button released (active LOW)
+
     while (1) {
         power_mgr_tick_led(s_backlight_on);
 
-        if (gpio_get_level(PIN_USER_BTN) == 0) {
+        bool btn_pressed = (gpio_get_level(PIN_USER_BTN) == 0);
+        // Detect button click on falling edge
+        if (btn_pressed && prev_btn_state) {
             s_last_activity_us = esp_timer_get_time();
             if (!s_backlight_on) {
+                // Wakeup screen from sleep
                 display_set_backlight(true);
                 tick_count = 20; // Trigger immediate display refresh
+            } else {
+                // Screen already awake: Toggle orientation 180 degrees
+                display_toggle_flip();
+                tick_count = 20; // Immediate redraw in new orientation
             }
         }
+        prev_btn_state = !btn_pressed;
+
         if ((esp_timer_get_time() - s_last_activity_us) > 120000000LL) {
             display_set_backlight(false);
         }
@@ -222,6 +252,7 @@ static void display_refresh_task(void *pvParameters) {
             power_status_t pwr;
             power_mgr_get_status(&pwr);
             ble_cts_service_update_power((uint8_t)pwr.percentage, (uint16_t)(pwr.voltage * 1000.0f), pwr.usb_connected);
+            wifi_manager_update_power(pwr.usb_connected, pwr.voltage);
             if (pwr.mode == POWER_MODE_BATTERY_CRITICAL && !s_backlight_on) {
                 display_set_backlight(true);
                 s_last_activity_us = esp_timer_get_time();
@@ -307,7 +338,9 @@ esp_err_t display_init(void) {
     tft_data_byte(0x05); // 16-bit RGB565
 
     tft_cmd(0x36); // Memory Access Control
-    tft_data_byte(0x68); // Landscape orientation
+    const app_config_t *init_cfg = config_mgr_get();
+    s_flipped = (init_cfg && init_cfg->display_flip);
+    tft_data_byte(s_flipped ? 0xA8 : 0x68); // Landscape orientation (normal or 180 deg)
 
     tft_cmd(0x21); // Display Inversion ON (INVON)
 

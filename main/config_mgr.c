@@ -119,6 +119,7 @@ static void load_defaults(app_config_t *cfg) {
     cfg->enable_ble_battery = true;
     cfg->enable_lora_power = true;
     cfg->position_precision = 18; // Default ~90m fuzzy precision for privacy
+    cfg->display_flip = false;     // Default 0 deg orientation
     snprintf(cfg->country_code, sizeof(cfg->country_code), "%s", "US");
     cfg->lora_freq_hz = get_default_lora_freq_by_country(cfg->country_code);
     cfg->lora_tx_power = 22;
@@ -191,6 +192,10 @@ esp_err_t config_mgr_write_default_ini(const char *path) {
     fprintf(f, "# lora_freq = %lu\n\n", (unsigned long)s_config.lora_freq_hz);
     fprintf(f, "# LoRa RF transmit power in dBm (0 to 22 dBm, default: 22):\n");
     fprintf(f, "# tx_power = %d\n\n", (int)s_config.lora_tx_power);
+
+    fprintf(f, "[display]\n");
+    fprintf(f, "# Invert screen orientation 180 degrees (true = upside down / case flipped, false = default):\n");
+    fprintf(f, "# flip = %s\n\n", s_config.display_flip ? "true" : "false");
 
     fprintf(f, "[wifi]\n");
     fprintf(f, "# 2.4 GHz Wi-Fi credentials for local network NTP server:\n");
@@ -308,6 +313,17 @@ static void parse_ini_file(FILE *f, app_config_t *cfg) {
             } else if (strcasecmp(key, "lora_power") == 0 || strcasecmp(key, "lora_telemetry") == 0) {
                 cfg->enable_lora_power = parse_bool(val, cfg->enable_lora_power);
             }
+        } else if (strcmp(current_section, "display") == 0) {
+            if (strcasecmp(key, "flip") == 0 || strcasecmp(key, "invert") == 0 ||
+                strcasecmp(key, "rotation") == 0) {
+                if (strcasecmp(val, "180") == 0) {
+                    cfg->display_flip = true;
+                } else if (strcasecmp(val, "0") == 0) {
+                    cfg->display_flip = false;
+                } else {
+                    cfg->display_flip = parse_bool(val, cfg->display_flip);
+                }
+            }
         } else if (strcmp(current_section, "lora") == 0) {
             if (strcasecmp(key, "lora_freq") == 0 || strcasecmp(key, "lora_freq_hz") == 0 ||
                 strcasecmp(key, "lora_frequency") == 0 || strcasecmp(key, "frequency") == 0 ||
@@ -417,4 +433,9 @@ esp_err_t config_mgr_init(void) {
 
 const app_config_t *config_mgr_get(void) {
     return &s_config;
+}
+
+esp_err_t config_mgr_set_display_flip(bool flip) {
+    s_config.display_flip = flip;
+    return ESP_OK;
 }

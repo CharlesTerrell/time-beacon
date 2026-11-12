@@ -38,6 +38,16 @@ void display_show_boot_prompt(int seconds_left);
 void display_show_config_mode(void);
 
 /**
+ * Set display orientation flip (true = 180 deg upside-down, false = 0 deg normal).
+ */
+void display_set_flip(bool flip);
+
+/**
+ * Toggle display orientation flip 180 degrees.
+ */
+void display_toggle_flip(void);
+
+/**
  * Start the background display refresh task (refreshes once per second,
  * handles 120s inactivity auto-sleep, and configures GPIO 0 user button wake).
  */

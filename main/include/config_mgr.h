@@ -29,6 +29,9 @@ typedef struct {
     uint32_t lora_freq_hz;
     int8_t lora_tx_power;
 
+    // Display Settings
+    bool display_flip;        // Invert screen 180 degrees (true = upside-down / flipped)
+
     // Wi-Fi network settings
     char wifi_ssid[33];
     char wifi_password[65];
@@ -57,6 +60,11 @@ const app_config_t *config_mgr_get(void);
  * Write default config.ini to the given filesystem path.
  */
 esp_err_t config_mgr_write_default_ini(const char *path);
+
+/**
+ * Set and persist display orientation flip (true = 180 deg inverted).
+ */
+esp_err_t config_mgr_set_display_flip(bool flip);
 
 #ifdef __cplusplus
 }

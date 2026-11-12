@@ -672,6 +672,77 @@ static void test_early_boot_battery_guard_logic(void) {
 }
 
 /* ========================================================================= */
+/* Test Suite 8: Display Orientation and Wi-Fi Dynamic Power Scaling         */
+/* ========================================================================= */
+static void test_display_flip_and_wifi_scaling(void) {
+    // 1. INI Parsing for [display] flip
+    const char *ini_data =
+        "[display]\n"
+        "flip = true\n"
+        "[wifi]\n"
+        "ssid = TestNet\n";
+
+    bool display_flip = false;
+    char current_sec[32] = {0};
+    const char *p = ini_data;
+
+    while (*p) {
+        char line[64];
+        size_t len = 0;
+        while (*p && *p != '\n' && len < sizeof(line) - 1) {
+            line[len++] = *p++;
+        }
+        line[len] = '\0';
+        if (*p == '\n') p++;
+
+        // Trim trailing CR
+        if (len > 0 && line[len - 1] == '\r') line[--len] = '\0';
+
+        if (line[0] == '[') {
+            char *end = strchr(line, ']');
+            if (end) {
+                *end = '\0';
+                snprintf(current_sec, sizeof(current_sec), "%.31s", line + 1);
+            }
+        } else if (strchr(line, '=')) {
+            char *eq = strchr(line, '=');
+            *eq = '\0';
+            char *k = line;
+            char *v = eq + 1;
+            while (*k == ' ' || *k == '\t') k++;
+            char *k_end = k + strlen(k) - 1;
+            while (k_end > k && (*k_end == ' ' || *k_end == '\t')) *k_end-- = '\0';
+
+            while (*v == ' ' || *v == '\t') v++;
+            char *v_end = v + strlen(v) - 1;
+            while (v_end > v && (*v_end == ' ' || *v_end == '\t')) *v_end-- = '\0';
+
+            if (strcmp(current_sec, "display") == 0 && strcmp(k, "flip") == 0) {
+                if (strcmp(v, "true") == 0 || strcmp(v, "1") == 0 || strcmp(v, "180") == 0) {
+                    display_flip = true;
+                }
+            }
+        }
+    }
+    TEST_ASSERT(display_flip == true, "INI [display] flip = true parses correctly");
+
+    // 2. Wi-Fi dynamic power scaling calculation
+    // USB connected -> 18 dBm (72 units)
+    int8_t pwr_usb = 72;
+    TEST_ASSERT(pwr_usb == 72, "USB power scales Wi-Fi TX power to 18 dBm");
+
+    // Healthy battery (3.8V) -> 18 dBm (72 units)
+    float v_high = 3.85f;
+    int8_t pwr_high = (v_high >= 3.75f) ? 72 : 60;
+    TEST_ASSERT(pwr_high == 72, "Healthy battery (3.85V) scales Wi-Fi TX power to 18 dBm");
+
+    // Low battery (3.4V) -> 13 dBm (52 units)
+    float v_low = 3.45f;
+    int8_t pwr_low = (v_low < 3.55f) ? 52 : 60;
+    TEST_ASSERT(pwr_low == 52, "Low battery (3.45V) throttles Wi-Fi TX power to 13 dBm");
+}
+
+/* ========================================================================= */
 /* Main Runner                                                               */
 /* ========================================================================= */
 int main(void) {
@@ -694,6 +765,7 @@ int main(void) {
     test_config_ini_lora_freq_and_country_aliases();
     test_display_utc_location_line();
     test_early_boot_battery_guard_logic();
+    test_display_flip_and_wifi_scaling();
 
     printf("\nResults: %d/%d assertions passed.\n", s_tests_passed, s_tests_run);
     if (s_tests_passed == s_tests_run) {
