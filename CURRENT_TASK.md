@@ -1,23 +1,23 @@
-# Task: Restore USB Serial JTAG PHY on Exiting USB Flash Drive Mode
+# Task: Make ESP-IDF Environment Activation Portable and Self-Caching
 
 ## Task Goal
-Fix USB Serial/JTAG disappearing and failing to re-enumerate after exiting USB Flash Drive mode:
-1. Cause:
-   In `main/usb_msc.c`, when the user exits Config Mode via button tap, `esp_restart()` is called immediately while TinyUSB holds the USB PHY in USB-OTG mode.
-   On ESP32-S3 software restart, the internal USB PHY routing does not reset back to the hardware USB Serial/JTAG controller, leaving USB Serial/JTAG un-enumerated and invisible to `usb_serial_jtag_is_connected()` and `idf.py monitor`.
-2. Fix:
-   In `main/usb_msc.c`:
-   - De-register / delete TinyUSB storage (`tinyusb_msc_delete_storage`).
-   - Uninstall TinyUSB driver (`tinyusb_driver_uninstall`).
-   - Unmount wear levelling (`wl_unmount`).
-   - Re-initialize internal USB PHY to hardware USB Serial/JTAG controller via `usb_new_phy(&phy_conf, &jtag_phy)`.
-   - Delay briefly for USB bus reset / host disconnection before `esp_restart()`.
-3. Verify test harness and tracker builds.
+Make `tools/idf_env.sh` and `tools/cache_esp_env` portable across IDF versions and user home directories:
+1. Remove all hardcoded `/home/charlie/` paths and hardcoded version numbers from tracked files.
+2. Combine caching logic:
+   - Detect `IDF_PATH` dynamically from environment or by finding latest `~/.espressif/v*/esp-idf` or `~/esp/esp-idf`.
+   - Use `$HOME` and variable expansions instead of hardcoded absolute paths.
+   - Cache active environment in `.env.esp` using `idf_tools.py export --format key-value`.
+   - Invalidate and refresh cache automatically if `IDF_PATH` or version changes.
+   - Sourcing `tools/idf_env.sh` is instantaneous (<5ms) when `.env.esp` is up-to-date.
+3. Update `tools/cache_esp_env` to use the same portable detection logic and refresh `.env.esp`.
+4. Ensure `.gitignore` ignores `.env.esp`.
+5. Verify build and test suite pass with zero errors and zero warnings.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `main/usb_msc.c`
-- `tests/test_harness.c`
+- `tools/idf_env.sh`
+- `tools/cache_esp_env`
+- `.gitignore`
 
 ## Verification Command
 ```bash
@@ -25,6 +25,8 @@ Fix USB Serial/JTAG disappearing and failing to re-enumerate after exiting USB F
 ```
 
 ## Checklist
-- [x] Cleanly teardown TinyUSB and restore USB Serial/JTAG PHY in `usb_msc.c`.
-- [x] Verify build and tests pass with zero errors and zero warnings.
+- [x] Update `tools/idf_env.sh` with portable detection and `.env.esp` caching.
+- [x] Update `tools/cache_esp_env` with portable path discovery.
+- [x] Ensure `.gitignore` covers local cache files.
+- [x] Run verification command with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.
