@@ -11,6 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
+#include "esp_private/usb_phy.h"
 #include <stdio.h>
 
 static const char *TAG = "usb_msc";
@@ -136,7 +137,32 @@ void usb_msc_run_loop(void) {
 
     while (1) {
         if (gpio_get_level(PIN_USER_BTN) == 0) {
-            ESP_LOGI(TAG, "USER button tapped. Rebooting...");
+            ESP_LOGI(TAG, "USER button tapped. Tearing down USB MSC...");
+
+            // 1. Delete storage handle
+            if (s_storage_hdl) {
+                tinyusb_msc_delete_storage(s_storage_hdl);
+                s_storage_hdl = NULL;
+            }
+
+            // 2. Uninstall TinyUSB driver
+            tinyusb_driver_uninstall();
+
+            // 3. Unmount wear levelling
+            if (s_wl_handle != WL_INVALID_HANDLE) {
+                wl_unmount(s_wl_handle);
+                s_wl_handle = WL_INVALID_HANDLE;
+            }
+
+            // 4. Restore USB PHY to hardware USB Serial/JTAG controller
+            usb_phy_config_t phy_conf = {
+                .controller = USB_PHY_CTRL_SERIAL_JTAG,
+                .target = USB_PHY_TARGET_INT,
+            };
+            usb_phy_handle_t jtag_phy = NULL;
+            usb_new_phy(&phy_conf, &jtag_phy);
+
+            // Give USB bus time to detach before restart
             vTaskDelay(pdMS_TO_TICKS(500));
             esp_restart();
         }

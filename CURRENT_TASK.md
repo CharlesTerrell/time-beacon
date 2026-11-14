@@ -1,25 +1,22 @@
-# Task: Fix Battery ADC Control Polarity and Display Battery Voltage
+# Task: Restore USB Serial JTAG PHY on Exiting USB Flash Drive Mode
 
 ## Task Goal
-Fix battery detection stuck on `USB` mode and display voltage clearly:
-1. In `main/power_mgr.c`:
-   - Change `PIN_VBAT_CTRL` (GPIO 2) polarity from active LOW to active HIGH:
-     - Initialization / idle: `gpio_set_level(PIN_VBAT_CTRL, 0);` (Q3 NPN off)
-     - Sampling: `gpio_set_level(PIN_VBAT_CTRL, 1);` (Q3 NPN on -> Q2 P-MOSFET gate low -> divider connected)
-     - Post-sampling: `gpio_set_level(PIN_VBAT_CTRL, 0);`
-2. In `main/display.c`:
-   - Display battery voltage in all power modes on line 5:
-     - On USB with battery: `N:<p> L:<l> <bt> 4.1V*`
-     - On USB without battery: `N:<p> L:<l> <bt> USB`
-     - On Battery: `N:<p> L:<l> <bt> 3.8V`
-     - Critical battery on battery: `LOW BAT! SLEEP:<sec>s`
-3. Update `tests/test_harness.c` to test battery status and display formatting.
-4. Auto-commit on clean build and tests.
+Fix USB Serial/JTAG disappearing and failing to re-enumerate after exiting USB Flash Drive mode:
+1. Cause:
+   In `main/usb_msc.c`, when the user exits Config Mode via button tap, `esp_restart()` is called immediately while TinyUSB holds the USB PHY in USB-OTG mode.
+   On ESP32-S3 software restart, the internal USB PHY routing does not reset back to the hardware USB Serial/JTAG controller, leaving USB Serial/JTAG un-enumerated and invisible to `usb_serial_jtag_is_connected()` and `idf.py monitor`.
+2. Fix:
+   In `main/usb_msc.c`:
+   - De-register / delete TinyUSB storage (`tinyusb_msc_delete_storage`).
+   - Uninstall TinyUSB driver (`tinyusb_driver_uninstall`).
+   - Unmount wear levelling (`wl_unmount`).
+   - Re-initialize internal USB PHY to hardware USB Serial/JTAG controller via `usb_new_phy(&phy_conf, &jtag_phy)`.
+   - Delay briefly for USB bus reset / host disconnection before `esp_restart()`.
+3. Verify test harness and tracker builds.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `main/power_mgr.c`
-- `main/display.c`
+- `main/usb_msc.c`
 - `tests/test_harness.c`
 
 ## Verification Command
@@ -28,8 +25,6 @@ Fix battery detection stuck on `USB` mode and display voltage clearly:
 ```
 
 ## Checklist
-- [x] Fix `PIN_VBAT_CTRL` active HIGH polarity in `power_mgr.c`.
-- [x] Update display line 5 battery voltage readout across all modes in `display.c`.
-- [x] Update tests in `tests/test_harness.c`.
-- [x] Run verification command with zero errors and zero warnings.
+- [x] Cleanly teardown TinyUSB and restore USB Serial/JTAG PHY in `usb_msc.c`.
+- [x] Verify build and tests pass with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.
