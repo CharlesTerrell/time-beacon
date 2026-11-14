@@ -1,49 +1,5 @@
 #!/usr/bin/env bash
 # Cache or update the local .env.esp environment file for Time Beacon
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_CACHE="$SCRIPT_DIR/.env.esp"
-
-# Discover IDF_PATH if not set
-if [ -z "${IDF_PATH:-}" ] || [ ! -f "$IDF_PATH/tools/idf_tools.py" ]; then
-    for candidate in $(ls -d "$HOME"/.espressif/v*/esp-idf 2>/dev/null | sort -V -r) \
-                     "$HOME/esp-idf" \
-                     "$HOME/esp/esp-idf" \
-                     "/opt/esp-idf"; do
-        if [ -f "$candidate/tools/idf_tools.py" ]; then
-            IDF_PATH="$candidate"
-            break
-        fi
-    done
-fi
-
-if [ -z "${IDF_PATH:-}" ] || [ ! -f "$IDF_PATH/tools/idf_tools.py" ]; then
-    echo "Error: Cannot find ESP-IDF. Set \$IDF_PATH." >&2
-    exit 1
-fi
-
-echo "Discovered IDF_PATH: $IDF_PATH"
-
-_DETECTED_VER=""
-if [ -f "$IDF_PATH/version.txt" ]; then
-    _DETECTED_VER="$(cat "$IDF_PATH/version.txt")"
-fi
-
-echo "Updating $ENV_CACHE..."
-TMP_ENV="$(mktemp)"
-python3 "$IDF_PATH/tools/idf_tools.py" export --format key-value > "$TMP_ENV"
-
-{
-    echo "# Auto-generated ESP-IDF cached environment"
-    echo "export IDF_PATH=\"$IDF_PATH\""
-    [ -n "$_DETECTED_VER" ] && echo "export ESP_IDF_VERSION=\"$_DETECTED_VER\""
-    while IFS='=' read -r key val; do
-        [ -z "$key" ] && continue
-        clean_val="$(echo "$val" | sed -e "s|^$HOME|\$HOME|g" -e "s|:$HOME|:\$HOME|g")"
-        echo "export $key=\"$clean_val\""
-    done < "$TMP_ENV"
-} > "$ENV_CACHE"
-rm -f "$TMP_ENV"
-
-echo "Cache updated: $ENV_CACHE"
+# Delegates to unified tools/idf_env.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/idf_env.sh" --refresh "$@"

@@ -1,23 +1,28 @@
-# Task: Make ESP-IDF Environment Activation Portable and Self-Caching
+# Task: Consolidate Environment Caching and Unify with mise.toml
 
 ## Task Goal
-Make `tools/idf_env.sh` and `tools/cache_esp_env` portable across IDF versions and user home directories:
-1. Remove all hardcoded `/home/charlie/` paths and hardcoded version numbers from tracked files.
-2. Combine caching logic:
-   - Detect `IDF_PATH` dynamically from environment or by finding latest `~/.espressif/v*/esp-idf` or `~/esp/esp-idf`.
-   - Use `$HOME` and variable expansions instead of hardcoded absolute paths.
-   - Cache active environment in `.env.esp` using `idf_tools.py export --format key-value`.
-   - Invalidate and refresh cache automatically if `IDF_PATH` or version changes.
-   - Sourcing `tools/idf_env.sh` is instantaneous (<5ms) when `.env.esp` is up-to-date.
-3. Update `tools/cache_esp_env` to use the same portable detection logic and refresh `.env.esp`.
-4. Ensure `.gitignore` ignores `.env.esp`.
-5. Verify build and test suite pass with zero errors and zero warnings.
+Combine `tools/cache_esp_env` and `tools/idf_env.sh` into a single unified system and align `mise.toml`:
+1. Consolidate `tools/idf_env.sh`:
+   - Dual-mode operation:
+     - Sourced (`source tools/idf_env.sh`): fast activation (<5ms via cache), auto-generates cache if missing/stale.
+     - Executed directly (`./tools/idf_env.sh` or with `--refresh`): updates/refreshes `.env.esp` cache on demand.
+   - Output portable `.env.esp` (standard key-value format) compatible with both bash `source` and `mise` `_.file = ".env.esp"`.
+2. Replace `tools/cache_esp_env`:
+   - Turn `tools/cache_esp_env` into a simple 1-line wrapper that delegates to `tools/idf_env.sh --refresh`.
+3. Update `mise.toml`:
+   - Remove hardcoded `IDF_VER = "6.1"` and hardcoded version paths.
+   - Connect `[tasks.update-esp-env]` to `./tools/idf_env.sh --refresh`.
+4. Verification command:
+   ```bash
+   ./build_tracker.sh all && ./tests/run_tests.sh
+   ```
+5. Auto-commit on clean build and tests per `AGENTS.md`.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
 - `tools/idf_env.sh`
 - `tools/cache_esp_env`
-- `.gitignore`
+- `mise.toml`
 
 ## Verification Command
 ```bash
@@ -25,8 +30,8 @@ Make `tools/idf_env.sh` and `tools/cache_esp_env` portable across IDF versions a
 ```
 
 ## Checklist
-- [x] Update `tools/idf_env.sh` with portable detection and `.env.esp` caching.
-- [x] Update `tools/cache_esp_env` with portable path discovery.
-- [x] Ensure `.gitignore` covers local cache files.
+- [x] Implement dual-mode (source vs. refresh execution) in `tools/idf_env.sh`.
+- [x] Simplify `tools/cache_esp_env` to call `tools/idf_env.sh`.
+- [x] Update `mise.toml` to remove hardcoded versions and wire to `tools/idf_env.sh`.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.
