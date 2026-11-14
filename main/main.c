@@ -53,6 +53,7 @@ void app_main(void) {
     ESP_LOGI(TAG, "Booting Stratum-1 Time Server Mode...");
     ESP_ERROR_CHECK(config_mgr_init());
     const app_config_t *cfg = config_mgr_get();
+    display_set_flip(cfg->display_flip);
     if (cfg->usb_nmea_output) {
         esp_log_level_set("*", ESP_LOG_NONE);
     }
