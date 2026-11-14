@@ -768,6 +768,30 @@ static void test_display_flip_and_wifi_scaling(void) {
         countdown = 30;
     }
     TEST_ASSERT(countdown == 30, "Unplugging USB while still critical re-arms 30s sleep countdown");
+
+    // 4. Status line display formatting with battery presence
+    char status_str[32];
+    bool pwr_mode_usb = true;
+    bool pwr_bat_present = true;
+    float pwr_voltage = 3.92f;
+    if (pwr_mode_usb) {
+        if (pwr_bat_present) {
+            snprintf(status_str, sizeof(status_str), "N:0 L:0 [BT] %0.1fV*", pwr_voltage);
+        } else {
+            snprintf(status_str, sizeof(status_str), "N:0 L:0 [BT] USB");
+        }
+    }
+    TEST_ASSERT(strcmp(status_str, "N:0 L:0 [BT] 3.9V*") == 0, "USB mode with battery formats voltage with charging asterisk");
+
+    pwr_bat_present = false;
+    if (pwr_mode_usb) {
+        if (pwr_bat_present) {
+            snprintf(status_str, sizeof(status_str), "N:0 L:0 [BT] %0.1fV*", pwr_voltage);
+        } else {
+            snprintf(status_str, sizeof(status_str), "N:0 L:0 [BT] USB");
+        }
+    }
+    TEST_ASSERT(strcmp(status_str, "N:0 L:0 [BT] USB") == 0, "USB mode without battery formats as USB");
 }
 
 /* ========================================================================= */

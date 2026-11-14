@@ -183,8 +183,13 @@ void display_update(const char *ip, uint8_t sats, bool locked, const char *utc_t
         ble_status = ble_cts_service_is_connected() ? "[BT*]" : "[BT]";
     }
     if (pwr.mode == POWER_MODE_USB) {
-        snprintf(status_str, sizeof(status_str), "N:%lu L:%lu %s USB",
-                 (unsigned long)packets, (unsigned long)lora_cnt, ble_status);
+        if (pwr.battery_present) {
+            snprintf(status_str, sizeof(status_str), "N:%lu L:%lu %s %0.1fV*",
+                     (unsigned long)packets, (unsigned long)lora_cnt, ble_status, pwr.voltage);
+        } else {
+            snprintf(status_str, sizeof(status_str), "N:%lu L:%lu %s USB",
+                     (unsigned long)packets, (unsigned long)lora_cnt, ble_status);
+        }
     } else if (pwr.mode == POWER_MODE_BATTERY_CRITICAL && pwr.usb_connected) {
         // Charging on USB while battery is low
         snprintf(status_str, sizeof(status_str), "N:%lu L:%lu [CHG] %0.1fV",

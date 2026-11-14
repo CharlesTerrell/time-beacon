@@ -67,7 +67,7 @@ esp_err_t power_mgr_init(void) {
     // 1. Configure Battery Divider Control Pin (GPIO 2)
     gpio_reset_pin(PIN_VBAT_CTRL);
     gpio_set_direction(PIN_VBAT_CTRL, GPIO_MODE_OUTPUT);
-    gpio_set_level(PIN_VBAT_CTRL, 1); // Disabled (Active LOW)
+    gpio_set_level(PIN_VBAT_CTRL, 0); // Disabled (Active HIGH: Q3 NPN off)
 
     // 2. Configure ADC1 Oneshot on GPIO 1 (ADC1_CHANNEL_0)
     adc_oneshot_unit_init_cfg_t init_config1 = {
@@ -130,8 +130,8 @@ esp_err_t power_mgr_init(void) {
 void power_mgr_update(void) {
     if (!s_adc_handle) return;
 
-    // Enable voltage divider
-    gpio_set_level(PIN_VBAT_CTRL, 0);
+    // Enable voltage divider (Active HIGH turns on Q3 NPN, pulling Q2 P-MOSFET gate LOW)
+    gpio_set_level(PIN_VBAT_CTRL, 1);
     // Allow brief settle time for RC filter
     esp_rom_delay_us(500);
 
@@ -146,8 +146,8 @@ void power_mgr_update(void) {
         esp_rom_delay_us(100);
     }
 
-    // Disable divider to prevent quiescent battery drain
-    gpio_set_level(PIN_VBAT_CTRL, 1);
+    // Disable divider to prevent quiescent battery drain (Q3 NPN off)
+    gpio_set_level(PIN_VBAT_CTRL, 0);
 
     int raw_avg = raw_sum / 8;
     int voltage_mv = 0;

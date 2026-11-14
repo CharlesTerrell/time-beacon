@@ -1,20 +1,25 @@
-# Task: Fix Persistent Screen Flip via config.ini
+# Task: Fix Battery ADC Control Polarity and Display Battery Voltage
 
 ## Task Goal
-Fix `[display] flip` in `config.ini` not taking effect:
-1. Cause: `config_mgr_init()` mounts FATFS and loads `config.ini` in `app_main()`, but `display_init()` is called BEFORE `config_mgr_init()`.
-   When `display_init()` calls `config_mgr_get()`, `s_config` has only compiled defaults (`display_flip = false`).
-2. Fix:
-   - Call `display_set_flip(cfg->display_flip)` in `app_main()` immediately after `config_mgr_init()` loads `config.ini`.
-   - In `display_set_flip()`, re-apply `MADCTL` register (`0x36`) and invalidate/refresh frame if needed.
-   - Also, in `config_mgr_set_display_flip(bool flip)`, if persistent write back to `config.ini` or NVS is desired, update `s_config.display_flip`.
-3. Verify test harness and tracker builds.
+Fix battery detection stuck on `USB` mode and display voltage clearly:
+1. In `main/power_mgr.c`:
+   - Change `PIN_VBAT_CTRL` (GPIO 2) polarity from active LOW to active HIGH:
+     - Initialization / idle: `gpio_set_level(PIN_VBAT_CTRL, 0);` (Q3 NPN off)
+     - Sampling: `gpio_set_level(PIN_VBAT_CTRL, 1);` (Q3 NPN on -> Q2 P-MOSFET gate low -> divider connected)
+     - Post-sampling: `gpio_set_level(PIN_VBAT_CTRL, 0);`
+2. In `main/display.c`:
+   - Display battery voltage in all power modes on line 5:
+     - On USB with battery: `N:<p> L:<l> <bt> 4.1V*`
+     - On USB without battery: `N:<p> L:<l> <bt> USB`
+     - On Battery: `N:<p> L:<l> <bt> 3.8V`
+     - Critical battery on battery: `LOW BAT! SLEEP:<sec>s`
+3. Update `tests/test_harness.c` to test battery status and display formatting.
+4. Auto-commit on clean build and tests.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `main/main.c`
+- `main/power_mgr.c`
 - `main/display.c`
-- `main/include/display.h`
 - `tests/test_harness.c`
 
 ## Verification Command
@@ -23,7 +28,8 @@ Fix `[display] flip` in `config.ini` not taking effect:
 ```
 
 ## Checklist
-- [x] Update `app_main()` to apply `cfg->display_flip` after `config_mgr_init()`.
-- [x] Verify `display_set_flip()` correctly updates `s_flipped` and sends `MADCTL` to display.
+- [x] Fix `PIN_VBAT_CTRL` active HIGH polarity in `power_mgr.c`.
+- [x] Update display line 5 battery voltage readout across all modes in `display.c`.
+- [x] Update tests in `tests/test_harness.c`.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.
