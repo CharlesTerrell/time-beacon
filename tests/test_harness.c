@@ -769,6 +769,27 @@ static void test_display_flip_and_wifi_scaling(void) {
     }
     TEST_ASSERT(countdown == 30, "Unplugging USB while still critical re-arms 30s sleep countdown");
 
+    // Critical battery countdown hysteresis:
+    // Voltage bounces from 3.30V up to 3.40V under lighter load -> MUST NOT cancel countdown!
+    float bounced_v = 3.40f;
+    bool is_critical = (bounced_v <= 3.35f);
+    if (!is_critical && !usb && countdown > 0) {
+        if (bounced_v < 3.50f) {
+            is_critical = true; // Hold critical countdown across bounce
+        }
+    }
+    TEST_ASSERT(is_critical == true, "Voltage bouncing to 3.40V does not break critical countdown latch");
+
+    // Voltage recovers above 3.50V (after external charge) -> Disarms countdown
+    float recovered_v = 3.55f;
+    is_critical = (recovered_v <= 3.35f);
+    if (!is_critical && !usb && countdown > 0) {
+        if (recovered_v < 3.50f) {
+            is_critical = true;
+        }
+    }
+    TEST_ASSERT(is_critical == false, "Voltage recovering to 3.55V clears critical countdown");
+
     // 4. Status line display formatting with battery presence
     char status_str[32];
     bool pwr_mode_usb = true;

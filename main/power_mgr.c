@@ -26,6 +26,7 @@ static const char *TAG = "power_mgr";
 #define VBAT_MAX_V              4.10f
 #define VBAT_LOW_V              3.45f
 #define VBAT_CRITICAL_V         3.35f
+#define VBAT_CRITICAL_RECOVERY_V 3.50f  /* Hysteresis: must reach 3.50V to exit critical mode on battery */
 
 /* RGB565 Colors */
 #define COLOR_WHITE             0xFFFF
@@ -181,7 +182,15 @@ void power_mgr_update(void) {
     s_status.percentage = (int)pct;
 
     // Power mode determination
-    if (s_status.battery_present && s_status.voltage <= VBAT_CRITICAL_V) {
+    // Hysteresis: If already in critical mode on battery, stay critical until voltage >= 3.50V or USB plugged in
+    bool is_critical = (s_status.battery_present && s_status.voltage <= VBAT_CRITICAL_V);
+    if (!is_critical && s_status.battery_present && s_status.mode == POWER_MODE_BATTERY_CRITICAL && !usb_active) {
+        if (s_status.voltage < VBAT_CRITICAL_RECOVERY_V) {
+            is_critical = true; // Hold critical state across cell bounce
+        }
+    }
+
+    if (is_critical) {
         // Battery present and critically low: Warning mode
         s_status.mode = POWER_MODE_BATTERY_CRITICAL;
         s_status.usb_connected = usb_active;
@@ -288,22 +297,37 @@ esp_err_t power_mgr_early_battery_guard(void) {
         return ESP_OK;
     }
 
-    // Critical low-battery threshold for early boot: 3.25V
-    // If a depleted battery is connected, TP4054 charger draws full 500mA.
-    // Booting Wi-Fi + BLE + LoRa on top of that sags the 5V/3.3V rail and bootloops.
+    // If USB is connected, do NOT sleep. Allow device to charge even if battery is low.
+    if (s_status.usb_connected) {
+        ESP_LOGI(TAG, "Early boot guard: USB connected with low battery (%0.2fV). Continuing boot in throttled charging mode.",
+                 s_status.voltage);
+        return ESP_OK;
+    }
+
+    // Critical low-battery threshold for early boot on battery: 3.25V
+    // If running on battery alone with depleted cell, deep sleep to protect cell.
     if (s_status.voltage <= 3.25f) {
-        ESP_LOGE(TAG, "Battery voltage too low for safe boot (%0.2fV <= 3.25V, USB=%d)",
-                 s_status.voltage, s_status.usb_connected);
+        ESP_LOGE(TAG, "Battery voltage too low for safe boot (%0.2fV <= 3.25V, on battery)", s_status.voltage);
 
         // Display brief warning before deep sleeping to allow charging
         display_set_backlight(true);
-        // Wakeup on button press or after 60 seconds to re-evaluate charging progress
-        esp_sleep_enable_timer_wakeup(60ULL * 1000ULL * 1000ULL);
-        esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_USER_BTN, 0); // Active LOW button
-
         vTaskDelay(pdMS_TO_TICKS(1500));
         display_set_backlight(false);
         gpio_set_level(PIN_VEXT_CTRL, 0); // Cut peripheral rail (GNSS + display)
+
+        // Ensure user button is released before enabling ext0 wakeup to avoid instant wakeup loop
+        while (gpio_get_level(PIN_USER_BTN) == 0) {
+            vTaskDelay(pdMS_TO_TICKS(50));
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
+
+        // Enable pull-up on USER button so it doesn't float during sleep
+        gpio_pullup_en(PIN_USER_BTN);
+        gpio_pulldown_dis(PIN_USER_BTN);
+
+        // Wakeup on button press or after 60 seconds to re-evaluate
+        esp_sleep_enable_timer_wakeup(60ULL * 1000ULL * 1000ULL);
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_USER_BTN, 0); // Active LOW button
         esp_deep_sleep_start();
     }
 
