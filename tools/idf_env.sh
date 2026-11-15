@@ -75,6 +75,8 @@ if [ "$_NEED_REGEN" -eq 1 ]; then
             [ -n "$_DETECTED_VER" ] && echo "ESP_IDF_VERSION=\"$_DETECTED_VER\""
             while IFS='=' read -r key val; do
                 [ -z "$key" ] && continue
+                # Skip temporary deactivation tracking variable to prevent \0 dotenv corruptions
+                [ "$key" == "IDF_DEACTIVATE_FILE_PATH" ] && continue
                 # Replace absolute user home with $HOME for portable storage
                 clean_val="$(echo "$val" | sed -e "s|^$HOME|\$HOME|g" -e "s|:$HOME|:\$HOME|g")"
                 echo "$key=\"$clean_val\""

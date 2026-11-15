@@ -1,9 +1,8 @@
-# Task: Unpin Ninja and Add Automatic Environment Cache Hook to mise.toml
+# Task: Filter Temporary Deactivation Path to Prevent Dotenv Null Byte Errors
 
 ## Task Goal
-1. In `mise.toml`:
-   - Remove hardcoded `ninja = "1.12.1"` from `[tools]`. Rely on ESP-IDF's bundled ninja in `.env.esp` PATH.
-   - Clean up `mise.toml` to use `tools/idf_env.sh --refresh` for `update-esp-env`.
+1. In `tools/idf_env.sh`:
+   - Filter out `IDF_DEACTIVATE_FILE_PATH` when exporting to `.env.esp` to avoid temporary file race conditions and `\0` null-byte dotenv syntax errors in mise.
 2. Verification command:
    ```bash
    ./build_tracker.sh all && ./tests/run_tests.sh
@@ -12,7 +11,7 @@
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `mise.toml`
+- `tools/idf_env.sh`
 
 ## Verification Command
 ```bash
@@ -20,7 +19,6 @@
 ```
 
 ## Checklist
-- [x] Remove hardcoded ninja from `mise.toml`.
-- [x] Ensure clean `.env.esp` integration with `mise.toml`.
+- [x] Filter out `IDF_DEACTIVATE_FILE_PATH` in `tools/idf_env.sh`.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.
