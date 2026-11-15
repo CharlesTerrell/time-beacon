@@ -15,10 +15,14 @@
 #include "lora_time_beacons.h"
 #include "display.h"
 #include "power_mgr.h"
+#include "esp_private/brownout.h"
 
 static const char *TAG = "main";
 
 void app_main(void) {
+    // Disable hardware brownout reset immediately to avoid bootloops on weak USB power supplies
+    esp_brownout_disable();
+
     ESP_LOGI(TAG, "%s initializing...", BOARD_HARDWARE_NAME);
 
     // Initialize display and power management early

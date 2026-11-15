@@ -1,17 +1,17 @@
-# Task: Fix Low Battery Countdown Hysteresis and Bootloader Charge Loop
+# Task: Eliminate Brownout Detector Boot Loops and Throttle Charging Wi-Fi Power
 
 ## Task Goal
-1. Low Battery Shutdown Countdown Hysteresis:
-   - In `main/power_mgr.c`:
-     - Once `POWER_MODE_BATTERY_CRITICAL` countdown arms ($\le 3.35\text{V}$), do NOT cancel on cell bounce.
-     - Latch critical mode until USB is connected or voltage recovers above $3.50\text{V}$ (`VBAT_CRITICAL_RECOVERY_V`).
-2. Fix Depleted Battery Boot Loop when Plugged into USB:
-   - In `main/power_mgr.c` (`power_mgr_early_battery_guard`):
-     - If USB power is detected (either via `usb_serial_jtag_is_connected()` or voltage jump), do NOT plunge into 60s deep sleep. Instead, allow device to boot in low-power charging mode, avoiding sleep loops.
-     - Before entering deep sleep on battery, wait until `PIN_USER_BTN` is released and debounce to avoid immediate `ext0` wakeup loop.
-     - Enable RTC pull-up on `PIN_USER_BTN` during sleep so floating button line does not false-trigger wakeup.
+1. Fix Hardware Brownout Detector Reset Loops:
+   - In `sdkconfig.defaults`:
+     - Explicitly set `# CONFIG_ESP_BROWNOUT_DET is not set` to prevent hardware brownout reset during USB power transients, battery charging, and RF spikes.
+   - In `main/main.c`:
+     - Call `esp_brownout_disable()` at the very start of `app_main()` as a runtime defense against boot brownouts.
+2. Fix Current Overload during Low-Battery USB Charging:
+   - In `main/wifi_manager.c`:
+     - When USB is connected AND a battery is present and charging (`battery_voltage < 4.10f`), cap Wi-Fi TX power to 15 dBm (60 units) or 13 dBm (52 units if $<3.65\text{V}$).
+     - Do not allow Wi-Fi to jump to 18 dBm (72 units) while battery is actively drawing 500mA charging current, preventing 5V rail sag and brownouts on 500mA USB ports.
 3. Unit tests in `tests/test_harness.c`:
-   - Test countdown latching hysteresis (voltage bouncing from 3.33V to 3.42V does not disarm countdown; USB or >3.50V disarms).
+   - Update Wi-Fi TX power scaling tests to verify 15 dBm cap while battery is charging on USB, and 18 dBm allowed only when battery is absent or fully charged.
 4. Verification command:
    ```bash
    ./build_tracker.sh all && ./tests/run_tests.sh
@@ -20,7 +20,9 @@
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `main/power_mgr.c`
+- `sdkconfig.defaults`
+- `main/main.c`
+- `main/wifi_manager.c`
 - `tests/test_harness.c`
 
 ## Verification Command
@@ -29,8 +31,9 @@
 ```
 
 ## Checklist
-- [x] Add voltage hysteresis to critical battery countdown in `main/power_mgr.c`.
-- [x] Fix USB presence and button release in `power_mgr_early_battery_guard()`.
-- [x] Add unit test coverage in `tests/test_harness.c`.
+- [x] Disable brownout detector in `sdkconfig.defaults`.
+- [x] Call `esp_brownout_disable()` at early `app_main()` in `main/main.c`.
+- [x] Throttle Wi-Fi TX power during battery charging in `main/wifi_manager.c`.
+- [x] Update unit test coverage in `tests/test_harness.c`.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.

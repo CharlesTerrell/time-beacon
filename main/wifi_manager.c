@@ -128,6 +128,10 @@ void wifi_manager_update_power(bool usb_connected, bool battery_present, float b
         // Battery is charging/low: Throttle Wi-Fi even if USB is connected
         // to leave full 500mA current budget for the onboard TP4054 charger.
         target_units = 52; // 13 dBm (~20 mW)
+    } else if (usb_connected && battery_present && battery_voltage < 4.10f) {
+        // Battery is actively charging on USB (TP4054 drawing up to 500mA):
+        // Cap Wi-Fi TX to 15 dBm to avoid overloading 500mA/1A USB supplies and causing brownouts.
+        target_units = 60; // 15 dBm (~31 mW)
     } else if (!battery_present || battery_voltage >= 3.75f) {
         // Pure USB without battery or healthy battery: full power
         target_units = 72; // 18 dBm (~63 mW)

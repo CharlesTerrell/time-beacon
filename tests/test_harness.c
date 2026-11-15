@@ -729,20 +729,34 @@ static void test_display_flip_and_wifi_scaling(void) {
     // 2. Wi-Fi dynamic power scaling calculation:
     // Pure USB without battery -> 18 dBm (72 units)
     bool bat_present = false;
+    bool usb_conn = true;
     float v_bat = 0.0f;
-    int8_t pwr = (bat_present && v_bat < 3.65f) ? 52 : ((!bat_present || v_bat >= 3.75f) ? 72 : 60);
+    int8_t pwr = (bat_present && v_bat < 3.65f) ? 52 :
+                 ((usb_conn && bat_present && v_bat < 4.10f) ? 60 :
+                 ((!bat_present || v_bat >= 3.75f) ? 72 : 60));
     TEST_ASSERT(pwr == 72, "Pure USB without battery scales Wi-Fi TX power to 18 dBm");
 
     // USB connected BUT low battery (3.45V) attached -> must throttle to 13 dBm!
     bat_present = true;
     v_bat = 3.45f;
-    pwr = (bat_present && v_bat < 3.65f) ? 52 : ((!bat_present || v_bat >= 3.75f) ? 72 : 60);
+    pwr = (bat_present && v_bat < 3.65f) ? 52 :
+          ((usb_conn && bat_present && v_bat < 4.10f) ? 60 :
+          ((!bat_present || v_bat >= 3.75f) ? 72 : 60));
     TEST_ASSERT(pwr == 52, "Low battery (3.45V) with USB throttles Wi-Fi to 13 dBm to protect charger");
 
-    // USB connected and healthy battery (3.85V) attached -> 18 dBm
+    // USB connected and charging battery (3.85V) attached -> caps to 15 dBm to protect power rail
     v_bat = 3.85f;
-    pwr = (bat_present && v_bat < 3.65f) ? 52 : ((!bat_present || v_bat >= 3.75f) ? 72 : 60);
-    TEST_ASSERT(pwr == 72, "Healthy battery (3.85V) with USB allows full 18 dBm Wi-Fi power");
+    pwr = (bat_present && v_bat < 3.65f) ? 52 :
+          ((usb_conn && bat_present && v_bat < 4.10f) ? 60 :
+          ((!bat_present || v_bat >= 3.75f) ? 72 : 60));
+    TEST_ASSERT(pwr == 60, "Charging battery (3.85V) on USB caps Wi-Fi TX power to 15 dBm");
+
+    // USB connected and fully charged battery (4.15V) attached -> allows 18 dBm
+    v_bat = 4.15f;
+    pwr = (bat_present && v_bat < 3.65f) ? 52 :
+          ((usb_conn && bat_present && v_bat < 4.10f) ? 60 :
+          ((!bat_present || v_bat >= 3.75f) ? 72 : 60));
+    TEST_ASSERT(pwr == 72, "Fully charged battery (4.15V) on USB allows full 18 dBm Wi-Fi power");
 
     // 3. Critical Countdown management when plugging/unplugging USB
     int countdown = -1;

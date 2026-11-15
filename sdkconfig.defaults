@@ -12,9 +12,9 @@ CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
 
 # Disable aggressive hardware Brownout Detector to prevent reset loops during simultaneous
 # battery charging (TP4054 @ ~500mA) and Wi-Fi RF calibration spikes
-CONFIG_ESP_BROWNOUT_DET=n
-CONFIG_BROWNOUT_DET=n
-CONFIG_ESP32S3_BROWNOUT_DET=n
+# CONFIG_ESP_BROWNOUT_DET is not set
+# CONFIG_BROWNOUT_DET is not set
+# CONFIG_ESP32S3_BROWNOUT_DET is not set
 
 # Store and reuse PHY calibration data in NVS to eliminate heavy RF analog recalibration spikes on boot
 CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE=y
