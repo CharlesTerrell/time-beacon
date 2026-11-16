@@ -1,39 +1,40 @@
-# Task: Eliminate Brownout Detector Boot Loops and Throttle Charging Wi-Fi Power
+# Task: Update Power Management Documentation to Reflect Current C Code
 
 ## Task Goal
-1. Fix Hardware Brownout Detector Reset Loops:
-   - In `sdkconfig.defaults`:
-     - Explicitly set `# CONFIG_ESP_BROWNOUT_DET is not set` to prevent hardware brownout reset during USB power transients, battery charging, and RF spikes.
-   - In `main/main.c`:
-     - Call `esp_brownout_disable()` at the very start of `app_main()` as a runtime defense against boot brownouts.
-2. Fix Current Overload during Low-Battery USB Charging:
-   - In `main/wifi_manager.c`:
-     - When USB is connected AND a battery is present and charging (`battery_voltage < 4.10f`), cap Wi-Fi TX power to 15 dBm (60 units) or 13 dBm (52 units if $<3.65\text{V}$).
-     - Do not allow Wi-Fi to jump to 18 dBm (72 units) while battery is actively drawing 500mA charging current, preventing 5V rail sag and brownouts on 500mA USB ports.
-3. Unit tests in `tests/test_harness.c`:
-   - Update Wi-Fi TX power scaling tests to verify 15 dBm cap while battery is charging on USB, and 18 dBm allowed only when battery is absent or fully charged.
-4. Verification command:
-   ```bash
-   ./build_tracker.sh all && ./tests/run_tests.sh
-   ```
-5. Auto-commit on clean build and tests per `AGENTS.md`.
+Update `./docs/plan/power_management.md` to align with the active implementation across `power_mgr.c`, `wifi_manager.c`, `main.c`, `display.c`, `board_pins.h`, and `sdkconfig.defaults`:
+1. Hardware interface:
+   - Clarify `PIN_VBAT_CTRL` active HIGH polarity (NPN Q3 driving P-MOSFET Q2 gate LOW).
+   - Document board pin mappings across Heltec Wireless Tracker v1.1, v2, and WiFi LoRa 32 V4.
+   - Detail brownout prevention: `# CONFIG_ESP_BROWNOUT_DET is not set` in Kconfig and early `esp_brownout_disable()` in `app_main()`.
+   - Detail LEDC PWM breathing pulse and critical battery flash on `PIN_STATUS_LED`.
+2. USB & Battery detection:
+   - Document sample variance ($>200$) and voltage ($<1.0\text{V}$) open battery port detection.
+   - Document wall charger float voltage detection ($>4.18\text{V}$).
+3. Dynamic Wi-Fi TX power scaling:
+   - 13 dBm (52 units) for low battery ($<3.65\text{V}$).
+   - 15 dBm (60 units) cap while actively charging on USB ($<4.10\text{V}$) to avoid overloading 500mA USB ports.
+   - 18 dBm (72 units) on pure USB or fully charged battery ($\ge 4.10\text{V}$ USB, $\ge 3.75\text{V}$ battery).
+4. Sleep & Hysteresis:
+   - Early boot guard at $\le 3.25\text{V}$ (bypassed if USB plugged in or battery missing).
+   - 30-second runtime countdown at $\le 3.35\text{V}$ with $3.50\text{V}$ recovery hysteresis latch.
+5. Telemetry & Display theming:
+   - Status bar indicators (`USB`, `X.XV*`, `[CHG] X.XV`, `LOW BAT! SLEEP:Xs`).
+   - Adaptive RGB565 color transitions (White on USB, Red on critical, Cyan to Yellow gradient on battery).
+   - BLE CTS and LoRa Meshtastic (101% on USB) telemetry.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
-- `sdkconfig.defaults`
-- `main/main.c`
-- `main/wifi_manager.c`
-- `tests/test_harness.c`
+- `docs/plan/power_management.md`
 
 ## Verification Command
 ```bash
-./build_tracker.sh all && ./tests/run_tests.sh
+./tests/run_tests.sh
 ```
 
 ## Checklist
-- [x] Disable brownout detector in `sdkconfig.defaults`.
-- [x] Call `esp_brownout_disable()` at early `app_main()` in `main/main.c`.
-- [x] Throttle Wi-Fi TX power during battery charging in `main/wifi_manager.c`.
-- [x] Update unit test coverage in `tests/test_harness.c`.
+- [x] Update `docs/plan/power_management.md` with hardware architecture, active HIGH divider gate, and brownout protection.
+- [x] Document dynamic Wi-Fi power throttling during USB battery charging.
+- [x] Document early boot guard, 30s emergency sleep countdown, and 3.50V bounce hysteresis latch.
+- [x] Document LED PWM breathing pulse, adaptive display color theming, and remote telemetry broadcasting.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.
