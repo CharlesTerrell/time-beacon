@@ -2,7 +2,8 @@
 python = "3.14"
 
 [env]
-_.file = ".env.esp"
+#_.file = ".env.esp"
+_.source = "./tools/idf_env.sh"
 
 [tasks.update-esp-env]
 description = "Regenerate cached ESP-IDF environment variables"
