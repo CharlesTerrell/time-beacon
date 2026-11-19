@@ -5,11 +5,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Locate and load ESP-IDF if idf.py is not in PATH
-if command -v idf.py >/dev/null 2>&1; then
-    echo "idf.py detected: $(command -v idf.py)"
-elif [ -f "$SCRIPT_DIR/tools/idf_env.sh" ]; then
+# Locate and load ESP-IDF environment
+if [ -f "$SCRIPT_DIR/tools/idf_env.sh" ]; then
     . "$SCRIPT_DIR/tools/idf_env.sh"
+elif command -v idf.py >/dev/null 2>&1; then
+    echo "idf.py detected: $(command -v idf.py)"
 elif [ -n "${IDF_PATH:-}" ] && [ -f "$IDF_PATH/export.sh" ]; then
     echo "Loading esp-idf from IDF_PATH ($IDF_PATH)..."
     . "$IDF_PATH/export.sh"
@@ -71,6 +71,13 @@ build_v2() {
     echo ">> v2 build complete: build_v2/heltec-tracker-ntp.bin"
 }
 
+run_tests() {
+    echo "=========================================="
+    echo " Running Native Host Test Suite...        "
+    echo "=========================================="
+    "$SCRIPT_DIR/tests/run_tests.sh"
+}
+
 flash_target() {
     local ver="${1:-v1.1}"
     local dev_port
@@ -84,6 +91,9 @@ flash_target() {
 }
 
 case "$TARGET" in
+    test|tests)
+        run_tests
+        ;;
     v1|v1.1)
         build_v1
         ;;
@@ -108,7 +118,7 @@ case "$TARGET" in
         rm -rf build build_v1 build_v2
         ;;
     *)
-        echo "Usage: $0 [v1.1|v2|all|clean|flash [v1.1|v2] [port]]"
+        echo "Usage: $0 [v1.1|v2|all|test|clean|flash [v1.1|v2] [port]]"
         exit 1
         ;;
 esac

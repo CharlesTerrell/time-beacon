@@ -1,24 +1,28 @@
-# Task: Update README.md to Reflect Current Project Architecture
+# Task: Bring build_tracker.sh and environment scripts up to date
 
 ## Task Goal
-Update `README.md` to reflect current project capabilities, configuration mechanisms, hardware support, and memory characteristics:
-1. Fix typo and update protocol summary (Station mode Wi-Fi with dynamic TX throttling, BLE CTS + BAS, 2-phase Meshtastic with 3-packet rotation, USB MSC flash drive configuration).
-2. Update supported hardware list: Heltec Wireless Tracker v1.1, Tracker v2, and WiFi LoRa 32 V4.
-3. Replace legacy `time_beacon.ini` snippet with current `/storage/config.ini` schema.
-4. Document USB Mass Storage configuration mode (hold `USER` during 2.5s boot prompt).
-5. Add RAM and Flash memory footprint summary.
-6. Verify via `./tests/run_tests.sh` and commit.
+Bring `build_tracker.sh` and `tools/idf_env.sh` up to date with the project's build, test, and environment loading workflows:
+1. Update `tools/idf_env.sh` so fast-path checks verify `ESP_IDF_VERSION` and `IDF_PYTHON_ENV_PATH` before bypassing environment loading.
+2. Update `build_tracker.sh` to source `tools/idf_env.sh` reliably to avoid IDF v6 environment crashes.
+3. Add `test` subcommand to `build_tracker.sh` that executes the native host test suite (`tests/run_tests.sh`).
+4. Update `build_tracker.sh` help/usage string to include `test`.
+5. Update `README.md` to document `./build_tracker.sh test`.
+6. Verify via `./build_tracker.sh test && ./build_tracker.sh all`.
 
 ## Allowed Files to Edit
 - `CURRENT_TASK.md`
+- `build_tracker.sh`
+- `tools/idf_env.sh`
 - `README.md`
 
 ## Verification Command
 ```bash
-./tests/run_tests.sh
+./build_tracker.sh test && ./build_tracker.sh all
 ```
 
 ## Checklist
-- [x] Update `README.md` with accurate architecture, hardware list, configuration, and memory stats.
+- [x] Fix environment activation in `tools/idf_env.sh` and `build_tracker.sh`.
+- [x] Add `test` command to `build_tracker.sh` invoking `tests/run_tests.sh`.
+- [x] Update `README.md` with `./build_tracker.sh test` usage.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Automatically commit verified changes per `AGENTS.md`.

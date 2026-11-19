@@ -15,9 +15,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_CACHE="$SCRIPT_DIR/.env.esp"
 
-# Fast path for sourced usage: if idf.py is already active in current shell, exit immediately
+# Fast path for sourced usage: if idf.py is active with complete environment, exit immediately
 if [ "$_IS_SOURCED" -eq 1 ] && [ "${1:-}" != "--refresh" ] && [ "${1:-}" != "-f" ]; then
-    if command -v idf.py >/dev/null 2>&1; then
+    if command -v idf.py >/dev/null 2>&1 && [ -n "${ESP_IDF_VERSION:-}" ] && [ -n "${IDF_PYTHON_ENV_PATH:-}" ]; then
         return 0 2>/dev/null || exit 0
     fi
 fi

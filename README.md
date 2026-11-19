@@ -69,6 +69,8 @@ Or build an individual target:
 ### 4. Run Host Unit Tests
 The project includes a native x86 simulation test suite verifying NMEA parsing, time discipline, INI tokenization, Wi-Fi dynamic power scaling, and packet encoders:
 ```bash
+./build_tracker.sh test
+# or directly:
 ./tests/run_tests.sh
 ```
 
