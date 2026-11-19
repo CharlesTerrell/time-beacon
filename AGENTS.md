@@ -23,14 +23,3 @@
 - Hardware pins: Use constants from `main/include/board_pins.h`. Never hardcode raw GPIO numbers.
 - Network byte order: Convert all multi-byte NTP fields with `htonl()` / `htons()`.
 
-## Memory Guidelines (Hindsight)
-
-- **Recall (Read):**
-  - Call `hindsight_recall` at session start before touching unfamiliar code.
-  - Call `hindsight_recall` before architectural decisions, migrations, or schema changes.
-
-- **Retain (Write):**
-  - Call `hindsight_retain` after resolving tricky bugs, edge cases, or root causes.
-  - Call `hindsight_retain` when creating new conventions, design choices, or system constraints.
-  - Do not retain trivial edits or git log summaries. Retain architectural intent and facts only.
-
