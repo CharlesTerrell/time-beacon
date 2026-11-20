@@ -68,8 +68,8 @@ Contains precision Stratum-1 time and geographic coordinates:
 - `timestamp`: 32-bit unsigned Unix epoch seconds
 - `location_source`: `LOC_INTERNAL` (`2`)
 - `altitude_source`: `ALT_INTERNAL` (`2`)
-- `latitude_i` / `longitude_i`: Signed 32-bit integers ($\text{degrees} \times 10^7$).
-  - Configurable fuzzing mask (`position_precision` in `config.ini`, default 18 bits $\approx 1.5\text{ km}$ privacy circle; 32 bits = raw precision).
+- `latitude_i` / `longitude_i`: Signed 32-bit integers (degrees × 10⁷).
+  - Configurable fuzzing mask (`position_precision` in `config.ini`, default 18 bits ≈ 1.5 km privacy circle; 32 bits = raw precision).
 - `altitude`: Altitude in meters above sea level (int32).
 - `precision_bits`: Precision bit count (`0xB8 0x01 <prec>`).
 
@@ -84,7 +84,7 @@ Registers the time beacon in receiver mesh node routing tables:
 ### 3. Device Metrics & Telemetry Packet (`TELEMETRY_APP`, PortNum 67)
 Publishes power health and battery telemetry:
 - `time`: Unix epoch seconds
-- `battery_level`: Remaining battery percentage ($0\% \dots 100\%$), or **`101%`** when running on external USB power
+- `battery_level`: Remaining battery percentage (0%–100%), or **`101%`** when running on external USB power
 - `voltage`: Current terminal voltage in Volts (IEEE 754 float)
 
 ---
@@ -102,4 +102,4 @@ When all conditions match, the client updates its internal RTC directly to the b
 ---
 
 ## Note on MeshCore Protocol
-*The legacy experimental MeshCore beacon implementation was removed from active firmware in commit `5cd5bec` to eliminate dead code and preserve radio airtime for 2-phase Meshtastic beacons. Full MeshCore protocol specifications and custom client patch details are archived in [meshcore_integration_spec.md](file:///home/charlie/Code/time_beacon/docs/plan/meshcore_integration_spec.md).*
+*The legacy experimental MeshCore beacon implementation was removed from active firmware in commit `5cd5bec` to eliminate dead code and preserve radio airtime for 2-phase Meshtastic beacons. Full MeshCore protocol specifications and custom client patch details are archived in [meshcore_integration_spec.md](meshcore_integration_spec.md).*

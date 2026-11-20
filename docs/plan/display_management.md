@@ -39,7 +39,7 @@ The display subsystem provides real-time visualization of Stratum-1 time synchro
   - `N:<ntp> L:<lora> [BT] 3.8V`: Normal battery operation.
 
 ### 2. Critical Battery Shutdown Alert Screen
-When terminal voltage drops to $\le 3.35\text{V}$ on battery power, the normal dashboard is replaced by a full-screen red warning:
+When terminal voltage drops to ≤ 3.35V on battery power, the normal dashboard is replaced by a full-screen red warning:
 ```text
 ! CRITICAL BATTERY !
 CONNECT USB CHARGER
@@ -65,7 +65,7 @@ The `PIN_USER_BTN` (GPIO 0) dynamically handles screen wake and orientation rota
 1. **Screen Sleeping (Backlight Off)**:
    - Short button press immediately wakes the backlight and refreshes the dashboard without altering orientation.
 2. **Screen Awake (Backlight On)**:
-   - Short button press toggles screen orientation by 180° (`0x68` $\leftrightarrow$ `0xA8`).
+   - Short button press toggles screen orientation by 180° (`0x68` ↔ `0xA8`).
    - The new state is stored via `config_mgr_set_display_flip()` so orientation state persists across runtime operations.
 3. **Configuration Setting**:
    - `[display] flip = true` in `config.ini` enforces the 180° inverted orientation upon boot.

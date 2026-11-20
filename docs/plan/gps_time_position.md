@@ -31,7 +31,7 @@ The GNSS subsystem is partitioned into modular, decoupled layers:
 ### 1. NMEA Protocol Parser (`nmea_parser.c`)
 - Stream-based parser validating NMEA-0183 checksums.
 - Evaluates `$GNRMC`, `$GNGGA`, `$GPRMC`, and `$GPGGA` sentences.
-- Extracts UTC timestamp (year, month, day, hour, minute, second), satellite count, 3D fix quality, altitude, and geographic coordinates ($\text{degrees} \times 10^7$).
+- Extracts UTC timestamp (year, month, day, hour, minute, second), satellite count, 3D fix quality, altitude, and geographic coordinates (degrees × 10⁷).
 
 ### 2. Low-Level Serial Driver (`gnss_driver.c`)
 - Manages the ESP-IDF UART ring buffer and reset sequencing.

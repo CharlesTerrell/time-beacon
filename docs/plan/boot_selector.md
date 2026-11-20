@@ -11,7 +11,7 @@ The Boot Selector subsystem manages device boot-time mode selection, user input 
    - `esp_brownout_disable()` is invoked at the very beginning of `app_main()` to prevent spurious hardware resets during USB connection transients.
    - Display and power manager initialize early.
    - `power_mgr_early_battery_guard()` verifies power rails:
-     - If running on battery alone with depleted voltage ($\le 3.25\text{V}$), displays a low-battery alert and enters deep sleep for 60 seconds (or until USER button press) to protect the lithium cell.
+     - If running on battery alone with depleted voltage (≤ 3.25V), displays a low-battery alert and enters deep sleep for 60 seconds (or until USER button press) to protect the lithium cell.
      - If USB power is present or battery connector is unpopulated, boot proceeds unconditionally.
 
 2. **2.5-Second Interactive Prompt**:

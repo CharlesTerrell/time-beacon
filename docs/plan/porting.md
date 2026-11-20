@@ -1,5 +1,9 @@
 # Multi-Architecture PlatformIO Porting Plan: Heltec Tracker (ESP32-S3) & Mesh Node T096 (nRF52840)
 
+> [!NOTE]
+> **Status: Future Architectural Roadmap**
+> Production firmware is implemented in pure ESP-IDF (v5.x/v6.x) for ESP32-S3. This document captures an investigation into PlatformIO (and potentially Zephyr RTOS) to support non-Espressif CPUs (such as the nRF52840 on the Heltec Mesh Node T096) if multi-vendor hardware support is needed in the future.
+
 ## 1. Executive Summary & Objective
 
 Migrate the Stratum-1 GNSS Time Server and LoRa Beacon project from a pure ESP-IDF environment to a multi-architecture **PlatformIO** project supporting:

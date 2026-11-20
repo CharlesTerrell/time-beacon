@@ -1,5 +1,9 @@
 # MeshCore Integration & Time Synchronization Specification
 
+> [!NOTE]
+> **Status: Archived / Research Specification**
+> MeshCore integration was originally investigated but set aside due to fundamental challenges with how MeshCore models security (strict signature requirements, encrypted paths, and total rejection of ambient unauthenticated timestamps conflicting with passive broadcast time sync). This document is preserved as an archived reference for potential future investigation; production firmware uses 2-phase Meshtastic beacons.
+
 This document details the MeshCore (v1.x) packet protocol, cryptographic requirements, why stock MeshCore nodes do not passively sync time from ambient broadcasts, and how a future trusted remote mesh time server architecture could be implemented.
 
 ---
@@ -12,7 +16,7 @@ For local MeshCore compatibility in the US915 band:
 - **Spreading Factor**: `SF7`
 - **Coding Rate**: `CR 4/5` (`SX1262_CR_4_5`)
 - **TX Power**: `+22 dBm`
-- **Preamble Length**: `32 symbols` (MeshCore standard for $SF \le 8$; $SF > 8$ uses 16 symbols)
+- **Preamble Length**: `32 symbols` (MeshCore standard for SF ≤ 8; SF > 8 uses 16 symbols)
 - **Sync Word**: `0x1424` (Private sync word / `SX1262_SYNC_PUBLIC`)
 
 ---
@@ -43,7 +47,7 @@ MeshCore packets follow this structure:
   - `0x00` (`0b00`): Protocol v1
 
 ### 2.2 Path Length Byte
-- **Bits 0–5**: Hop count ($0 \dots 63$).
+- **Bits 0–5**: Hop count (0–63).
 - **Bits 6–7**: Path hash size minus 1:
   - `0b00`: 1-byte hash
   - `0b01`: 2-byte hash (`0x40` for 0 hops)

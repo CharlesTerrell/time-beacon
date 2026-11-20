@@ -18,14 +18,14 @@ Configured under the `[wifi]` block:
 - **Regulatory Domain**: Configures two-letter country code (e.g. `country_code = US`) via `esp_wifi_set_country_code()`.
 
 ### 2. Wi-Fi Power Management & Dynamic RF Scaling
-High-power Wi-Fi RF transmissions can draw 300–400 mA peaks, which risks sagging power rails and triggering brownouts when simultaneous battery charging (~500 mA) is active. The driver implements multi-tiered power protection:
+High-power Wi-Fi RF transmissions can draw 300–400 mA peaks, which risks sagging power rails and triggering brownouts when simultaneous battery charging (~500 mA) is active. The driver implements multi-tiered power protection (detailed in [Power Management](power_management.md)):
 - **Modem Sleep**: Enables automatic light-sleep between DTIM beacons (`WIFI_PS_MIN_MODEM`), cutting idle radio power consumption.
 - **Initial Boot Cap**: Caps TX power to **15 dBm (60 units)** during driver startup before network join.
 - **Dynamic TX Scaling (`wifi_manager_update_power`)**:
-  - **Depleted Battery ($V_{\text{bat}} < 3.65\text{V}$)**: Throttled to **13 dBm (~20 mW / 52 units)** even when plugged into USB, maximizing available current for the onboard LiPo charger.
-  - **Actively Charging on USB ($3.65\text{V} \le V_{\text{bat}} < 4.10\text{V}$)**: Capped to **15 dBm (~31 mW / 60 units)** to prevent overloading 500 mA host USB ports.
-  - **Pure USB (No Battery) OR Fully Charged ($V_{\text{bat}} \ge 4.10\text{V}$) OR Healthy Battery ($V_{\text{bat}} \ge 3.75\text{V}$)**: Scaled to full **18 dBm (~63 mW / 72 units)** for maximum indoor range.
-  - **Intermediate Battery on Discharge ($3.65\text{V} \le V_{\text{bat}} < 3.75\text{V}$)**: Balanced at **15 dBm (~31 mW / 60 units)**.
+  - **Depleted Battery (Vbat < 3.65V)**: Throttled to **13 dBm (~20 mW / 52 units)** even when plugged into USB, maximizing available current for the onboard LiPo charger.
+  - **Actively Charging on USB (3.65V ≤ Vbat < 4.10V)**: Capped to **15 dBm (~31 mW / 60 units)** to prevent overloading 500 mA host USB ports.
+  - **Pure USB (No Battery) OR Fully Charged (Vbat ≥ 4.10V) OR Healthy Battery (Vbat ≥ 3.75V)**: Scaled to full **18 dBm (~63 mW / 72 units)** for maximum indoor range.
+  - **Intermediate Battery on Discharge (3.65V ≤ Vbat < 3.75V)**: Balanced at **15 dBm (~31 mW / 60 units)**.
 
 ---
 
@@ -34,7 +34,7 @@ High-power Wi-Fi RF transmissions can draw 300–400 mA peaks, which risks saggi
 - **Port**: UDP 123
 - **Socket**: Non-blocking Berkeley UDP socket bound to `INADDR_ANY` with FreeRTOS worker task.
 - **Packet Wire Format (48 bytes, RFC 5905)**:
-  - Byte 0: `LI = 0` (No leap warning), `VN = 4` (NTPv4), `Mode = 4` (Server response) $\to$ `0x24`
+  - Byte 0: `LI = 0` (No leap warning), `VN = 4` (NTPv4), `Mode = 4` (Server response) → `0x24`
   - Byte 1: `Stratum = 1` (Primary reference clock)
   - Byte 2: `Poll` (Echoed from client request)
   - Byte 3: `Precision = -20` (~1 microsecond resolution)
@@ -52,7 +52,7 @@ High-power Wi-Fi RF transmissions can draw 300–400 mA peaks, which risks saggi
 
 NTP timestamps are 64-bit fixed-point numbers counting seconds since January 1, 1900.
 - **Epoch Conversion**:
-  - Unix Epoch starts January 1, 1970 ($2,208,988,800$ seconds after NTP epoch).
-  - $\text{NTP Seconds} = \text{Unix Seconds} + 2208988800\text{UL}$.
-  - $\text{NTP Fraction} = \frac{\mu\text{s} \times 4294967296}{1000000}$.
+  - Unix Epoch starts January 1, 1970 (2,208,988,800 seconds after NTP epoch).
+  - `NTP Seconds = Unix Seconds + 2208988800UL`
+  - `NTP Fraction = (μs * 4294967296) / 1000000`
 - **Endianness**: All 32-bit timestamp integer fields are encoded in big-endian network byte order using `htonl()`.

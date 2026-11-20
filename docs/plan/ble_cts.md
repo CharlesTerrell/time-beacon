@@ -33,7 +33,7 @@ The BLE subsystem provides standard Bluetooth SIG Current Time Service (CTS) bro
 - **Service UUID**: `0x180F` (`BLE_SVC_BAS_UUID16`)
 - **Battery Level Characteristic**: `0x2A19`
   - **Permissions**: Read, Notify
-  - **Payload**: 1-byte battery percentage ($0 \dots 100\%$)
+  - **Payload**: 1-byte battery percentage (0–100%)
   - **Configuration**: Enabled via `enable_battery = true` under `[ble]` in `config.ini`. When enabled, the BAS UUID is included in GAP advertising packets.
 
 ### 4. Power & Battery Telemetry Service - Custom
@@ -41,7 +41,7 @@ The BLE subsystem provides standard Bluetooth SIG Current Time Service (CTS) bro
 - **Telemetry Characteristic**: `0xFFE1`
   - **Permissions**: Read, Notify
   - **Payload Structure (4 bytes packed)**:
-    - Byte 0: `percentage` (`uint8_t`, $0 \dots 100\%$)
+    - Byte 0: `percentage` (`uint8_t`, 0–100%)
     - Bytes 1–2: `voltage_mv` (`uint16_t` little-endian, millivolts)
     - Byte 3: `usb_connected` (`uint8_t`, 1 = USB powered, 0 = Battery)
 

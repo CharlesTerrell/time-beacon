@@ -58,8 +58,8 @@ Heltec hardware lacks a dedicated hardware GPIO sensing USB VBUS (5V). The firmw
 2. **Open Battery Connector Detection**:
    - When no physical battery is attached, the TP4054 charger rapidly cycles output voltage ("hunting" between ~2.5V and 4.2V).
    - The driver calculates sample variance across 8 consecutive ADC readings:
-     $$\sigma^2 = \frac{1}{8}\sum_{i=0}^{7} (V_i - \bar{V})^2$$
-   - A variance $> 200$ or measured voltage $< 1.0\text{V}$ identifies an unpopulated battery connector.
+     `σ² = (1/8) Σ (Vi - V̄)²`
+   - A variance > 200 or measured voltage < 1.0V identifies an unpopulated battery connector.
    - Sets `battery_present = false`, forces `POWER_MODE_USB`, and clears critical alerts.
 3. **Wall Charger / Dumb Power Bank Detection**:
    - Wall adapters provide no USB data lines (`usb_serial_jtag_is_connected()` returns `false`).
@@ -69,20 +69,20 @@ Heltec hardware lacks a dedicated hardware GPIO sensing USB VBUS (5V). The firmw
 
 ## Battery State & Percentage Calculation
 
-- **Chemistry**: Single-cell lithium-polymer / lithium-ion ($3.0\text{V}$ cut-off to $4.2\text{V}$ float).
+- **Chemistry**: Single-cell lithium-polymer / lithium-ion (3.0V cut-off to 4.2V float).
 - **Linear Capacity Mapping**:
   - Formula:
-    $$\text{Percentage} = \operatorname{clamp}\left( \frac{V_{\text{bat}} - 3.30\text{V}}{4.15\text{V} - 3.30\text{V}} \times 100,\; 0,\; 100 \right)$$
-  - $\ge 4.15\text{ V} \to 100\%$
-  - $3.85\text{ V} \to 65\%$
-  - $3.65\text{ V} \to 41\%$
-  - $3.30\text{ V} \to 0\%$
+    `Percentage = clamp(((Vbat - 3.30V) / (4.15V - 3.30V)) * 100, 0, 100)`
+  - ≥ 4.15V → 100%
+  - 3.85V → 65%
+  - 3.65V → 41%
+  - 3.30V → 0%
 - **Operating Thresholds**:
-  - `VBAT_MAX_V`: $4.10\text{V}$ (upper bound for UI color gradient)
-  - `VBAT_LOW_V`: $3.45\text{V}$ (lower bound for UI color gradient)
-  - `VBAT_CRITICAL_V`: $3.35\text{V}$ (runtime critical threshold triggering emergency shutdown countdown)
-  - `VBAT_CRITICAL_RECOVERY_V`: $3.50\text{V}$ (hysteresis threshold required to exit critical mode on battery)
-  - Early boot brownout cut-off: $\le 3.25\text{V}$ on battery
+  - `VBAT_MAX_V`: 4.10V (upper bound for UI color gradient)
+  - `VBAT_LOW_V`: 3.45V (lower bound for UI color gradient)
+  - `VBAT_CRITICAL_V`: 3.35V (runtime critical threshold triggering emergency shutdown countdown)
+  - `VBAT_CRITICAL_RECOVERY_V`: 3.50V (hysteresis threshold required to exit critical mode on battery)
+  - Early boot brownout cut-off: ≤ 3.25V on battery
 
 ---
 
@@ -94,13 +94,13 @@ To prevent USB rail collapse and brownouts caused by simultaneous charging curre
    - Wi-Fi initialization in `wifi_manager_init()` enforces an initial TX power cap of **15 dBm (60 units)** via `esp_wifi_set_max_tx_power(60)` before connecting to the AP.
    - Modem sleep is enabled (`esp_wifi_set_ps(WIFI_PS_MIN_MODEM)`).
 2. **Runtime Dynamic Scaling (`wifi_manager_update_power`)**:
-   - **Low Battery ($V_{\text{bat}} < 3.65\text{V}$)**:
+   - **Low Battery (Vbat < 3.65V)**:
      - Wi-Fi TX power throttles to **13 dBm (~20 mW / 52 units)** even when connected to USB. Leaves full current budget for the TP4054 charger.
-   - **Actively Charging on USB ($3.65\text{V} \le V_{\text{bat}} < 4.10\text{V}$ with USB connected)**:
+   - **Actively Charging on USB (3.65V ≤ Vbat < 4.10V with USB connected)**:
      - Wi-Fi TX power is capped at **15 dBm (~31 mW / 60 units)**. Prevents overloading 500 mA USB host ports and weak wall adapters while the TP4054 draws 500 mA.
-   - **Pure USB (No Battery attached) OR Fully Charged on USB ($V_{\text{bat}} \ge 4.10\text{V}$) OR Healthy Battery ($V_{\text{bat}} \ge 3.75\text{V}$ on battery)**:
+   - **Pure USB (No Battery attached) OR Fully Charged on USB (Vbat ≥ 4.10V) OR Healthy Battery (Vbat ≥ 3.75V on battery)**:
      - Wi-Fi TX power boosts to full **18 dBm (~63 mW / 72 units)** for maximum wireless broadcast range.
-   - **Discharging Battery Mid-Range ($3.65\text{V} \le V_{\text{bat}} < 3.75\text{V}$ on battery)**:
+   - **Discharging Battery Mid-Range (3.65V ≤ Vbat < 3.75V on battery)**:
      - Wi-Fi operates at **15 dBm (~31 mW / 60 units)**.
 3. **LoRa Transmit Power**:
    - SX1262 LoRa emissions remain at full **22 dBm (160 mW)**. Time beacon packets are small (< 64 bytes), brief (< 100 ms airtime), and strictly duty-cycled (once every 60 seconds), keeping average power drain negligible.
@@ -114,7 +114,7 @@ To prevent USB rail collapse and brownouts caused by simultaneous charging curre
 - Reads initial battery voltage via `power_mgr_update()`.
 - **Pure USB Mode (`!battery_present`)**: Skips deep sleep and boots normally.
 - **USB Connected (`usb_connected == true`)**: Continues boot even if battery is low, allowing the device to charge in throttled Wi-Fi mode.
-- **Battery-Only with Depleted Cell ($V_{\text{bat}} \le 3.25\text{V}$)**:
+- **Battery-Only with Depleted Cell (Vbat ≤ 3.25V)**:
   - Turns on display backlight for 1.5 seconds to display warning.
   - Turns off display backlight and deasserts `PIN_VEXT_CTRL` to cut peripheral power rails.
   - Waits for USER button release if held down to prevent an immediate wake loop.
@@ -124,7 +124,7 @@ To prevent USB rail collapse and brownouts caused by simultaneous charging curre
 
 ### 2. Runtime Critical Battery Shutdown Countdown
 - Evaluated every second in the display task loop (`power_mgr_check_emergency_sleep`).
-- **Trigger**: Battery present and $V_{\text{bat}} \le 3.35\text{V}$ on battery power (`!usb_active`).
+- **Trigger**: Battery present and Vbat ≤ 3.35V on battery power (`!usb_active`).
 - **Action**:
   - Enters `POWER_MODE_BATTERY_CRITICAL`.
   - Arms a 30-second shutdown countdown (`s_status.critical_countdown_sec = 30`).
@@ -140,13 +140,13 @@ To prevent USB rail collapse and brownouts caused by simultaneous charging curre
     rendered in red (`COLOR_RED`) on black.
 - **Voltage Bounce Hysteresis**:
   - As current load drops or cell relaxes, battery voltage can bounce from 3.30V to ~3.40V.
-  - If already in critical mode on battery, the state machine holds critical mode and keeps the countdown ticking as long as $V_{\text{bat}} < 3.50\text{V}$ (`VBAT_CRITICAL_RECOVERY_V`).
+  - If already in critical mode on battery, the state machine holds critical mode and keeps the countdown ticking as long as Vbat < 3.50V (`VBAT_CRITICAL_RECOVERY_V`).
   - Only charging above 3.50V or connecting USB will clear the critical latch.
 - **Plugging into USB during Countdown**:
   - The countdown timer is immediately disarmed (`critical_countdown_sec = -1`).
   - Normal UI resumes; status line displays `[CHG] <v>V`.
 - **Unplugging from USB while still Critical**:
-  - If USB power is removed and voltage remains $\le 3.35\text{V}$, the countdown immediately re-arms to 30 seconds.
+  - If USB power is removed and voltage remains ≤ 3.35V, the countdown immediately re-arms to 30 seconds.
 - **Countdown Expiry (`critical_countdown_sec == 0`)**:
   - Turns off display backlight (`display_set_backlight(false)`).
   - Stops Wi-Fi radio (`esp_wifi_stop()`).
@@ -161,7 +161,7 @@ To prevent USB rail collapse and brownouts caused by simultaneous charging curre
 - **Foreground Text Color (`power_mgr_get_fg_color`)**:
   - **USB Mode**: White (`0xFFFF`).
   - **Critical Battery Mode**: Red (`0xF800`).
-  - **Battery Mode**: Dynamic RGB565 color gradient interpolating smoothly between Electric Cyan / Sky Blue (`0x07FF` at $V_{\text{bat}} \ge 4.10\text{V}$) and Bright Yellow (`0xFFE0` at $V_{\text{bat}} \le 3.45\text{V}$).
+  - **Battery Mode**: Dynamic RGB565 color gradient interpolating smoothly between Electric Cyan / Sky Blue (`0x07FF` at Vbat ≥ 4.10V) and Bright Yellow (`0xFFE0` at Vbat ≤ 3.45V).
 
 ### 2. Status Line Indicators
 - **USB Mode with Battery Present**: `N:<ntp> L:<lora> [BT] 3.9V*` (asterisk denotes external power / charging).
