@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  host-tests:
+    name: Native Host Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run host test suite
+        run: ./tests/run_tests.sh
+
+  build-firmware:
+    name: Build ESP32-S3 Targets
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:v5.3.2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure safe directory for git
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}" || true
+
+      - name: Build firmware targets (v1.1 & v2)
+        run: |
+          . ${IDF_PATH}/export.sh
+          ./build_tracker.sh all
+
+      - name: Archive v1.1 firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: heltec-tracker-v1.1-firmware
+          path: |
+            build_v1/heltec-tracker-ntp.bin
+            build_v1/bootloader/bootloader.bin
+            build_v1/partition_table/partition-table.bin
+
+      - name: Archive v2 firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: heltec-tracker-v2-firmware
+          path: |
+            build_v2/heltec-tracker-ntp.bin
+            build_v2/bootloader/bootloader.bin
+            build_v2/partition_table/partition-table.bin
