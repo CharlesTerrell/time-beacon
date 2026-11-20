@@ -1,22 +1,20 @@
-# Task: Set up GitHub Actions CI workflow
+# Task: Add project license
 
 ## Task Goal
-Create GitHub Actions CI workflow in `.github/workflows/ci.yml` that:
-1. Runs native host unit tests on PR and push to `main` or `master`.
-2. Builds firmware targets for ESP32-S3 (`v1.1` and `v2`) inside the official ESP-IDF container.
-3. Packages and archives compiled binaries (`heltec-tracker-ntp.bin`, `bootloader.bin`, `partition-table.bin`) as GitHub workflow artifacts.
-4. Validates CI YAML syntax and verifies host test execution.
+Add MIT license file to project root:
+1. Create LICENSE file.
+2. Verify file exists and test suite passes.
 
 ## Allowed Files to Edit
-- `CURRENT_TASK.md`
-- `.github/workflows/ci.yml`
+- CURRENT_TASK.md
+- LICENSE
 
 ## Verification Command
 ```bash
-python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))" && ./build_tracker.sh test
+test -f LICENSE && ./build_tracker.sh test
 ```
 
 ## Checklist
-- [x] Create `.github/workflows/ci.yml` with host test and ESP32-S3 firmware build jobs.
-- [x] Validate workflow syntax and run local verification command.
+- [x] Create LICENSE file.
+- [x] Run verification command.
 - [x] Mark checklist items complete and commit changes per AGENTS.md rules.
