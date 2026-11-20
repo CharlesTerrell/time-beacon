@@ -90,9 +90,33 @@ flash_target() {
     fi
 }
 
+size_target() {
+    local ver="${1:-v1.1}"
+    local bdir="build_v1"
+    if [ "$ver" = "v2" ]; then
+        bdir="build_v2"
+    fi
+    if [ ! -d "$bdir" ]; then
+        echo "Error: $bdir not found. Build target first via: $0 $ver"
+        exit 1
+    fi
+    echo "=========================================="
+    echo " Binary Footprint & Memory Audit ($ver)... "
+    echo "=========================================="
+    idf.py -B "$bdir" size
+    if [ "${2:-}" = "components" ] || [ "${2:-}" = "-c" ]; then
+        echo ""
+        echo "Component Breakdown:"
+        idf.py -B "$bdir" size-components
+    fi
+}
+
 case "$TARGET" in
     test|tests)
         run_tests
+        ;;
+    size)
+        size_target "$EXTRA_ARG" "$PORT"
         ;;
     v1|v1.1)
         build_v1
@@ -118,7 +142,7 @@ case "$TARGET" in
         rm -rf build build_v1 build_v2
         ;;
     *)
-        echo "Usage: $0 [v1.1|v2|all|test|clean|flash [v1.1|v2] [port]]"
+        echo "Usage: $0 [v1.1|v2|all|test|size [v1.1|v2] [components]|clean|flash [v1.1|v2] [port]]"
         exit 1
         ;;
 esac

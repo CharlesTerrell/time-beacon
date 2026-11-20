@@ -15,7 +15,7 @@
 - Symbol indexing: `ctags -R .` or `cscope -b -R` for jumping to C struct, enum, and function definitions.
 - Binary & compilation database: `bear` or `ninja -t compdb` for generating `compile_commands.json`.
 - Static analysis: `clang-tidy` (using `compile_commands.json`) to catch type mismatches and memory safety bugs.
-- Footprint & memory audit: `idf.py size` and `idf.py size-components` to track flash, DRAM, and IRAM usage.
+- Footprint & memory audit: `./build.sh size [v1.1|v2] [components]` or `idf.py size` and `idf.py size-components` to track flash, DRAM, and IRAM usage.
 - ELF symbol size inspection: `xtensa-esp32s3-elf-nm -S --size-sort build_v1/*.elf` to locate oversized buffers or functions.
 
 ## Code Quality Rules

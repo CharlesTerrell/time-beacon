@@ -1,23 +1,25 @@
-# Task: Add inspection CLI tools to AGENTS.md
+# Task: Add size command to build.sh
 
 ## Task Goal
-Update `AGENTS.md` with recommended inspection and analysis tools:
-1. Add `ctags`/`cscope` for fast symbol and definition lookups.
-2. Add `clang-tidy` for static code analysis.
-3. Add `idf.py size` / `idf.py size-components` for static memory and flash tracking.
-4. Add `xtensa-esp32s3-elf-nm -S --size-sort` for ELF symbol size inspection.
-5. Verify test suite passes cleanly.
+Add `size` target to `build.sh`:
+1. Implement `size_target` in `build.sh` invoking `idf.py -B <bdir> size` (and optional `size-components`).
+2. Update usage help string in `build.sh`.
+3. Update `README.md` and `AGENTS.md` with `./build.sh size` usage.
+4. Verify tests pass and `./build.sh size v1.1` runs successfully.
 
 ## Allowed Files to Edit
 - CURRENT_TASK.md
+- build.sh
+- README.md
 - AGENTS.md
 
 ## Verification Command
 ```bash
-./build.sh test && test -f AGENTS.md
+./build.sh test && ./build.sh size v1.1
 ```
 
 ## Checklist
-- [x] Update Recommended CLI & Inspection Tools in AGENTS.md.
+- [x] Add size target to build.sh.
+- [x] Update README.md and AGENTS.md.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Mark checklist items complete and commit changes per AGENTS.md rules.

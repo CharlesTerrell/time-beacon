@@ -52,7 +52,16 @@ The project includes a native x86 simulation test suite verifying NMEA parsing, 
 ./tests/run_tests.sh
 ```
 
-### 5. Flash to Device
+### 5. Memory & Footprint Audit
+Check exact flash, DRAM, and IRAM allocations for built targets:
+```bash
+./build.sh size v1.1
+./build.sh size v2
+# With detailed per-component breakdown:
+./build.sh size v1.1 components
+```
+
+### 6. Flash to Device
 Connect the board via USB-C and flash:
 ```bash
 ./build.sh flash v1.1
