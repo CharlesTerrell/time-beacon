@@ -58,18 +58,18 @@ source tools/idf_env.sh
 ### 3. Build Firmware
 Build both hardware targets (or specify `v1.1` or `v2`):
 ```bash
-./build_tracker.sh all
+./build.sh all
 ```
 Or build an individual target:
 ```bash
-./build_tracker.sh v1.1
-./build_tracker.sh v2
+./build.sh v1.1
+./build.sh v2
 ```
 
 ### 4. Run Host Unit Tests
 The project includes a native x86 simulation test suite verifying NMEA parsing, time discipline, INI tokenization, Wi-Fi dynamic power scaling, and packet encoders:
 ```bash
-./build_tracker.sh test
+./build.sh test
 # or directly:
 ./tests/run_tests.sh
 ```
@@ -77,7 +77,7 @@ The project includes a native x86 simulation test suite verifying NMEA parsing, 
 ### 5. Flash to Device
 Connect the board via USB-C and flash:
 ```bash
-./build_tracker.sh flash v1.1
+./build.sh flash v1.1
 ```
 To monitor serial logs:
 ```bash

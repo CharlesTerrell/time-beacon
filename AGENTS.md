@@ -9,7 +9,7 @@
   2. Automatically stage and commit verified changes with Conventional Commits message and `Co-authored-by:` trailer matching the active agent tool and model (e.g., Antigravity/Gemini, Aider/Qwen, Claude Code).
 
 ## Recommended CLI & Inspection Tools
-- Build and flash script: `./build_tracker.sh`
+- Build and flash script: `./build.sh`
 - Serial console & logging: `tio -b 115200 /dev/ttyACM0` or `idf.py monitor`.
 - Fast search: `rg` (ripgrep) for searching symbol definitions, registers, and strings across the codebase.
 - Binary & compilation database: `bear` or `ninja -t compdb` for generating `compile_commands.json`.

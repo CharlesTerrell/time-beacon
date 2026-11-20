@@ -32,7 +32,7 @@ jobs:
       - name: Build firmware targets (v1.1 & v2)
         run: |
           . ${IDF_PATH}/export.sh
-          ./build_tracker.sh all
+          ./build.sh all
 
       - name: Archive v1.1 firmware
         uses: actions/upload-artifact@v4
