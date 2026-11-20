@@ -12,7 +12,11 @@
 - Build and flash script: `./build.sh`
 - Serial console & logging: `tio -b 115200 /dev/ttyACM0` or `idf.py monitor`.
 - Fast search: `rg` (ripgrep) for searching symbol definitions, registers, and strings across the codebase.
+- Symbol indexing: `ctags -R .` or `cscope -b -R` for jumping to C struct, enum, and function definitions.
 - Binary & compilation database: `bear` or `ninja -t compdb` for generating `compile_commands.json`.
+- Static analysis: `clang-tidy` (using `compile_commands.json`) to catch type mismatches and memory safety bugs.
+- Footprint & memory audit: `idf.py size` and `idf.py size-components` to track flash, DRAM, and IRAM usage.
+- ELF symbol size inspection: `xtensa-esp32s3-elf-nm -S --size-sort build_v1/*.elf` to locate oversized buffers or functions.
 
 ## Code Quality Rules
 - Fallible functions return `esp_err_t`. Use standard IDF errors (`ESP_OK`, `ESP_ERR_INVALID_ARG`, `ESP_FAIL`).
