@@ -1,5 +1,8 @@
 # Time Beacon: Multi-Protocol Stratum-1 Time Server
 
+[![CI](https://github.com/tachyon/time_beacon/actions/workflows/ci.yml/badge.svg)](https://github.com/tachyon/time_beacon/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Time Beacon is a self-contained, battery- or USB-powered **Stratum-1 Reference Clock** built for ESP32-S3. Disciplined by an onboard GNSS/GPS receiver and Pulse-Per-Second (PPS) interrupt, it simultaneously broadcasts precision time across three wireless protocols:
 
 1. **Wi-Fi NTP Server**: High-throughput RFC 5905 NTPv4 / RFC 4330 SNTP server on UDP port 123 (Station mode with DHCP or Static IP, modem sleep, and dynamic RF power scaling to prevent USB brownouts).
@@ -13,32 +16,7 @@ Time Beacon is a self-contained, battery- or USB-powered **Stratum-1 Reference C
 
 - **Heltec Wireless Tracker v1.1**: ESP32-S3FN8, UC6580 GNSS, SX1262 LoRa, ST7735 0.96" SPI TFT (80x160), NMEA rollover time discipline (unrouted PCB PPS).
 - **Heltec Wireless Tracker v2**: Adds active GNSS 1PPS GPIO interrupt discipline and RF Front-End Module (FEM PA).
-- **Heltec WiFi LoRa 32 V4**: ESP32-S3, SSD1306 0.96" I2C OLED (128x64), SX1262 LoRa with FEM PA, external GNSS connector with 1PPS interrupt discipline.
-
----
-
-## Power Management & Brownout Protection
-
-- **Brownout Safeguards**: Hardware brownout detector reset disabled in Kconfig (`# CONFIG_ESP_BROWNOUT_DET is not set`) and early runtime (`esp_brownout_disable()`) to prevent boot loops on weak 500 mA USB ports and charging transients. Wi-Fi PHY calibration data cached in NVS.
-- **Dynamic Wi-Fi TX Scaling**:
-  - Depleted battery ($< 3.65\text{V}$): Throttled to **13 dBm** (~20 mW) to leave full current for TP4054 charger.
-  - Actively charging on USB ($< 4.10\text{V}$): Capped to **15 dBm** (~31 mW) to avoid 5V rail sag on 500 mA USB ports.
-  - Pure USB (no battery) or fully charged ($\ge 4.10\text{V}$): Full **18 dBm** (~63 mW) for maximum range.
-- **Gated Battery Divider**: `PIN_VBAT_CTRL` active HIGH gate eliminates parasitic drain; 8-sample variance filter detects open battery ports.
-- **Multi-Tier Sleep Protection**:
-  - Early boot guard puts device into 60s deep sleep if battery is $\le 3.25\text{V}$ without USB.
-  - Runtime 30-second shutdown countdown triggers if battery drops to $\le 3.35\text{V}$, with $3.50\text{V}$ bounce recovery hysteresis latch.
-  - Plugging in USB cancels countdown immediately; unplugging re-arms countdown.
-- **Status LED PWM**: Breathing pulse during screen sleep (0–100% configurable peak duty), 100 ms flash on critical battery.
-
----
-
-## Resource Footprint (ESP32-S3)
-
-- **Flash Storage**: **1.16 MB** (~1,185 KB binary) fits within 3.0 MB app partition (**38.6% used**).
-- **Static RAM**: **~187 KB** total (68 KB DRAM + 117 KB IRAM).
-- **Runtime Free Heap**: **~325 KB free** out of 512 KB internal SRAM for network sockets and buffers.
-- **Static Allocation**: Zero `malloc` calls in runtime loops, packet engines, or ISRs.
+- **Heltec WiFi LoRa 32 V4** *(Experimental)*: ESP32-S3, SSD1306 0.96" I2C OLED (128x64), SX1262 LoRa with FEM PA, external GNSS connector with 1PPS interrupt discipline (selected via `idf.py menuconfig`).
 
 ---
 
@@ -133,6 +111,29 @@ usb_nmea_output = false       ; Stream raw NMEA sentences over USB Serial/JTAG
 
 ---
 
+## Architecture & Hardware Safeguards
+
+### Power Management & Brownout Protection
+- **Brownout Safeguards**: Hardware brownout detector reset disabled in Kconfig (`# CONFIG_ESP_BROWNOUT_DET is not set`) and early runtime (`esp_brownout_disable()`) to prevent boot loops on weak 500 mA USB ports and charging transients. Wi-Fi PHY calibration data cached in NVS.
+- **Dynamic Wi-Fi TX Scaling**:
+  - Depleted battery (< 3.65V): Throttled to **13 dBm** (~20 mW) to leave full current for TP4054 charger.
+  - Actively charging on USB (< 4.10V): Capped to **15 dBm** (~31 mW) to avoid 5V rail sag on 500 mA USB ports.
+  - Pure USB (no battery) or fully charged (≥ 4.10V): Full **18 dBm** (~63 mW) for maximum range.
+- **Gated Battery Divider**: `PIN_VBAT_CTRL` active HIGH gate eliminates parasitic drain; 8-sample variance filter detects open battery ports.
+- **Multi-Tier Sleep Protection**:
+  - Early boot guard puts device into 60s deep sleep if battery is ≤ 3.25V without USB.
+  - Runtime 30-second shutdown countdown triggers if battery drops to ≤ 3.35V, with 3.50V bounce recovery hysteresis latch.
+  - Plugging in USB cancels countdown immediately; unplugging re-arms countdown.
+- **Status LED PWM**: Breathing pulse during screen sleep (0–100% configurable peak duty), 100 ms flash on critical battery.
+
+### Resource Footprint (ESP32-S3)
+- **Flash Storage**: **1.16 MB** (~1,185 KB binary) fits within 3.0 MB app partition (**38.6% used**).
+- **Static RAM**: **~187 KB** total (68 KB DRAM + 117 KB IRAM).
+- **Runtime Free Heap**: **~325 KB free** out of 512 KB internal SRAM for network sockets and buffers.
+- **Static Allocation**: Zero `malloc` calls in runtime loops, packet engines, or ISRs.
+
+---
+
 ## Subsystem Architecture Documentation
 
 Detailed design specifications and wire formats are located in [`docs/plan/`](docs/plan/):
@@ -149,4 +150,5 @@ Detailed design specifications and wire formats are located in [`docs/plan/`](do
 ---
 
 ## License
-MIT License.
+
+[MIT License](LICENSE)
