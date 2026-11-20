@@ -82,7 +82,7 @@ enable = true                 ; Enable Bluetooth Low Energy Current Time Service
 enable_battery = true         ; Expose standard BLE Battery Service (BAS)
 
 [meshtastic]
-enable = true                 ; Enable LoRa 2-phase Meshtastic time beacons
+enable = false                ; Enable LoRa 2-phase Meshtastic time beacons
 freq_hz = 906875000           ; Base frequency (906.875 MHz US915 LongFast)
 
 [display]
