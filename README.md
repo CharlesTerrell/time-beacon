@@ -145,7 +145,7 @@ Detailed design specifications and wire formats are located in [`docs/plan/`](do
 - [Display & UI Management](docs/plan/display_management.md)
 - [BLE Current Time Service (CTS)](docs/plan/ble_cts.md)
 - [MeshCore Architecture Specification](docs/plan/meshcore_integration_spec.md)
-- [Multi-Architecture Porting Plan](docs/plan/porting.md)
+- [Multi-Architecture Porting Roadmaps](docs/plan/porting/README.md)
 
 ---
 

@@ -1,21 +1,41 @@
-# Task: Document Espressif RISC-V porting scenario in docs/plan/porting.md
+# Task: Modularize porting scenarios into docs/plan/porting/*.md
 
 ## Task Goal
-Update `docs/plan/porting.md` with Section 5 analyzing future migration to Espressif RISC-V architectures (e.g. ESP32-C3, ESP32-C6, ESP32-P4):
-1. Explain that ~95%+ of code remains unchanged due to unified ESP-IDF HAL.
-2. Outline specific required adjustments (~5%): board pinout mapping, ADC calibration scheme differences, and USB-OTG vs USB Serial/JTAG MSC constraints.
-3. Run test suite to verify project health.
+Restructure `docs/plan/porting.md` into modular directory `docs/plan/porting/`:
+1. Create `docs/plan/porting/README.md` index of porting scenarios.
+2. Create `docs/plan/porting/platformio_nrf52.md` for PlatformIO/Zephyr non-Espressif plan.
+3. Create `docs/plan/porting/espressif_riscv.md` for Espressif RISC-V migration plan.
+4. Remove monolithic `docs/plan/porting.md` and update `README.md` link.
+5. Verify all links and test suite pass cleanly.
 
 ## Allowed Files to Edit
 - CURRENT_TASK.md
+- README.md
 - docs/plan/porting.md
+- docs/plan/porting/README.md
+- docs/plan/porting/platformio_nrf52.md
+- docs/plan/porting/espressif_riscv.md
 
 ## Verification Command
 ```bash
-./build.sh test && test -f docs/plan/porting.md
+./build.sh test && test -f docs/plan/porting/README.md && test -f docs/plan/porting/platformio_nrf52.md && test -f docs/plan/porting/espressif_riscv.md && python3 -c "
+import glob, re, os
+for path in glob.glob('docs/plan/**/*.md', recursive=True):
+    content = open(path).read()
+    if 'file:///home/' in content:
+        raise ValueError(f'Hardcoded absolute path found in {path}')
+    links = re.findall(r'\[.*?\]\((.*?)\)', content)
+    for l in links:
+        if l.startswith('http') or l.startswith('#'): continue
+        target = os.path.normpath(os.path.join(os.path.dirname(path), l.split('#')[0]))
+        if not os.path.exists(target):
+            raise FileNotFoundError(f'Broken link in {path}: {l} -> {target}')
+print('Link check clean!')
+"
 ```
 
 ## Checklist
-- [x] Add Espressif RISC-V scenario to docs/plan/porting.md.
+- [x] Create docs/plan/porting/ directory with modular scenario documents.
+- [x] Remove docs/plan/porting.md and update README.md link.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Mark checklist items complete and commit changes per AGENTS.md rules.
