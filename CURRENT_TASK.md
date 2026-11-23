@@ -1,28 +1,18 @@
-# Task: Fix CI path filtering and ESP32 compiler errors (string.h, timegm)
+# Task: Fix usb component requirement for ESP-IDF v5.x in main/CMakeLists.txt
 
 ## Task Goal
-1. Prevent full CI rebuilds on documentation-only changes by adding `paths-ignore` to `.github/workflows/ci.yml`.
-2. Fix ESP32 compilation failures:
-   - Add missing `<string.h>` in `main/gnss_driver.c` for `strlen`.
-   - Replace non-standard `timegm()` in `main/time_sync.c` with a portable, self-contained UTC-to-epoch converter.
-   - Add unit test coverage for the UTC epoch conversion in `tests/test_harness.c`.
+Resolve `fatal error: esp_private/usb_phy.h: No such file or directory` under ESP-IDF v5.x (CI container v5.3.2) by conditionally requiring the `usb` component when `IDF_VERSION_MAJOR` is less than 6, while maintaining compatibility with ESP-IDF v6.x.
 
 ## Allowed Files to Edit
 - CURRENT_TASK.md
-- .github/workflows/ci.yml
-- main/gnss_driver.c
-- main/time_sync.c
-- tests/test_harness.c
+- main/CMakeLists.txt
 
 ## Verification Command
 ```bash
-./build.sh test && rm -rf build_v1 build_v2 && ./build.sh all
+./build.sh test && ./build.sh v1.1
 ```
 
 ## Checklist
-- [x] Add `paths-ignore` in `.github/workflows/ci.yml` for doc/markdown changes.
-- [x] Include `<string.h>` in `main/gnss_driver.c`.
-- [x] Replace `timegm()` with portable `utc_tm_to_epoch()` in `main/time_sync.c`.
-- [x] Add unit tests for UTC epoch converter in `tests/test_harness.c`.
+- [x] Conditionally add `usb` to `REQUIRES` in `main/CMakeLists.txt` for ESP-IDF v5.x.
 - [x] Run verification command with zero errors and zero warnings.
 - [x] Mark checklist items complete and commit changes per AGENTS.md rules.
