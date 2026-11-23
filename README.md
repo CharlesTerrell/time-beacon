@@ -1,6 +1,6 @@
 # Time Beacon: Multi-Protocol ESP32 Time Server
 
-[![CI](https://github.com/tachyon/time_beacon/actions/workflows/ci.yml/badge.svg)](https://github.com/tachyon/time_beacon/actions/workflows/ci.yml)
+[![CI](https://github.com/CharlesTerrell/time-beacon/actions/workflows/ci.yml/badge.svg)](https://github.com/CharlesTerrell/time-beacon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## What Is This?
