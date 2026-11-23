@@ -71,15 +71,16 @@ Install Time Beacon directly from your browser in under 60 seconds using Web Ser
 ### Option B: Pre-Compiled Binaries (Single-File Flash)
 Pre-merged firmware binaries are published for every build under **[GitHub Releases](https://github.com/CharlesTerrell/time-beacon/releases)**:
 
-- **`time-beacon-heltec-tracker-v1.1.bin`**: Heltec Wireless Tracker v1.1 (TFT 80x160, active 1PPS, direct SX1262)
-- **`time-beacon-heltec-tracker-v2.bin`**: Heltec Wireless Tracker v2 (TFT 80x160, active 1PPS, FEM PA)
+- **`time-beacon-heltec-wireless-tracker-<version>.<build_id>.factory.bin`**: Heltec Wireless Tracker v1.1 (TFT 80x160, active 1PPS, direct SX1262)
+- **`time-beacon-heltec-wireless-tracker-v2-<version>.<build_id>.factory.bin`**: Heltec Wireless Tracker v2 (TFT 80x160, active 1PPS, FEM PA)
+- Unmerged application binaries (`.bin`) are also attached for standalone OTA flashing.
 
-Each file contains the complete image (bootloader, partition table, and application merged together). Flash it to offset `0x0`:
+Each `.factory.bin` file contains the complete image (bootloader, partition table, and application merged together). Flash it to offset `0x0`:
 
-- **Via [Espressif Online Flasher](https://espressif.github.io/esptool-js/)**: Connect in Chrome, add the `.bin` at address `0x0`, and click **Program**.
+- **Via [Espressif Online Flasher](https://espressif.github.io/esptool-js/)**: Connect in Chrome, add the `.factory.bin` at address `0x0`, and click **Program**.
 - **Via `esptool` CLI**:
   ```bash
-  esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 write_flash 0x0 time-beacon-heltec-tracker-v1.1.bin
+  esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 write_flash 0x0 time-beacon-heltec-wireless-tracker-*.factory.bin
   ```
 
 ---
@@ -105,7 +106,7 @@ Build both board targets or a single target:
 ./build.sh v1.1
 ./build.sh v2
 ```
-This produces both the component binaries and the ready-to-flash merged binaries (`build_v1/time-beacon-heltec-tracker-v1.1.bin` and `build_v2/time-beacon-heltec-tracker-v2.bin`).
+This produces both the component binaries and the ready-to-flash merged factory binaries (`build_v1/time-beacon-heltec-wireless-tracker-*.factory.bin` and `build_v2/time-beacon-heltec-wireless-tracker-v2-*.factory.bin`).
 
 #### 4. Run Host Unit Tests
 Run native host tests (NMEA parsing, time discipline, INI parsing, Wi-Fi power scaling, packet encoders):

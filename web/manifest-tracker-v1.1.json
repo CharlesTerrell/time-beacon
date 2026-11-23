@@ -1,12 +1,12 @@
 {
-  "name": "Time Beacon for Heltec Tracker v1.1",
+  "name": "Time Beacon for Heltec Wireless Tracker",
   "version": "latest",
   "home_page": "https://github.com/CharlesTerrell/time-beacon",
   "builds": [
     {
       "chipFamily": "ESP32-S3",
       "parts": [
-        { "path": "time-beacon-heltec-tracker-v1.1.bin", "offset": 0 }
+        { "path": "time-beacon-heltec-wireless-tracker.factory.bin", "offset": 0 }
       ]
     }
   ]

@@ -70,51 +70,61 @@ jobs:
           fi
 
   build-firmware:
-    name: Build ESP32-S3 Targets
+    name: Build Targets (${{ matrix.idf-version }})
     needs: [host-tests, check-nightly-needed]
     if: needs.check-nightly-needed.outputs.should_build == 'true'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        idf-version: [ 'v6.1', 'v5.3.2' ]
     container:
-      image: espressif/idf:v5.3.2
+      image: espressif/idf:${{ matrix.idf-version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure safe directory for git
         run: git config --global --add safe.directory "${GITHUB_WORKSPACE}" || true
 
-      - name: Build firmware targets (v1.1 & v2)
+      - name: Build firmware targets (Tracker & Tracker v2)
         run: |
           . ${IDF_PATH}/export.sh
           ./build.sh all
 
-      - name: Archive firmware artifacts
+      - name: Archive firmware artifacts (v6.1 primary)
+        if: matrix.idf-version == 'v6.1'
         uses: actions/upload-artifact@v4
         with:
           name: time-beacon-firmware
           path: |
-            build_v1/time-beacon-heltec-tracker-v1.1.bin
-            build_v2/time-beacon-heltec-tracker-v2.bin
-            build_v1/heltec-tracker-ntp.bin
-            build_v2/heltec-tracker-ntp.bin
+            build_v1/time-beacon-heltec-wireless-tracker*.bin
+            build_v2/time-beacon-heltec-wireless-tracker-v2*.bin
 
-      - name: Publish GitHub Release
+      - name: Publish GitHub Release (v6.1 primary)
+        if: matrix.idf-version == 'v6.1'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'nightly' }}
           name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Time Beacon (Nightly Build)' }}
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |
-            build_v1/time-beacon-heltec-tracker-v1.1.bin
-            build_v2/time-beacon-heltec-tracker-v2.bin
+            build_v1/time-beacon-heltec-wireless-tracker*.factory.bin
+            build_v1/time-beacon-heltec-wireless-tracker*.bin
+            build_v2/time-beacon-heltec-wireless-tracker-v2*.factory.bin
+            build_v2/time-beacon-heltec-wireless-tracker-v2*.bin
 
-      - name: Prepare Web Installer Directory
+      - name: Prepare Web Installer Directory (v6.1 primary)
+        if: matrix.idf-version == 'v6.1'
         run: |
           mkdir -p web
-          cp build_v1/time-beacon-heltec-tracker-v1.1.bin web/
-          cp build_v2/time-beacon-heltec-tracker-v2.bin web/
+          cp build_v1/time-beacon-heltec-wireless-tracker.factory.bin web/
+          cp build_v2/time-beacon-heltec-wireless-tracker-v2.factory.bin web/
 
-      - name: Upload Pages artifact
+      - name: Upload Pages artifact (v6.1 primary)
+        if: matrix.idf-version == 'v6.1'
         uses: actions/upload-pages-artifact@v3
         with:
           path: web/

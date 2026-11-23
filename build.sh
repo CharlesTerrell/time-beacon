@@ -52,25 +52,60 @@ detect_port() {
     echo "/dev/ttyACM1"
 }
 
+get_build_info() {
+    local git_tag
+    git_tag="$(git describe --tags --exact-match 2>/dev/null || true)"
+    local git_hash
+    git_hash="$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+
+    if [ -n "$git_tag" ]; then
+        # Release build: e.g. 1.2.3.d0f4096
+        echo "${git_tag#v}.${git_hash}"
+    else
+        # Development / daily build: e.g. daily.d0f4096
+        echo "daily.${git_hash}"
+    fi
+}
+
 build_v1() {
     echo "=========================================="
     echo " Building Heltec Wireless Tracker v1.1..."
     echo "=========================================="
+    local binfo
+    binfo="$(get_build_info)"
     idf.py -B build_v1 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.v1_1" build
-    (cd build_v1 && esptool.py --chip esp32s3 merge_bin -o time-beacon-heltec-tracker-v1.1.bin @flash_args)
+    
+    local factory_bin="time-beacon-heltec-wireless-tracker-${binfo}.factory.bin"
+    local ota_bin="time-beacon-heltec-wireless-tracker-${binfo}.bin"
+    
+    (cd build_v1 && esptool.py --chip esp32s3 merge_bin -o "$factory_bin" @flash_args)
+    cp build_v1/heltec-tracker-ntp.bin "build_v1/$ota_bin"
+    # Also create canonical unversioned alias for web flasher and local flashing
+    cp "build_v1/$factory_bin" build_v1/time-beacon-heltec-wireless-tracker.factory.bin
+
     # Also update default build/ so standard 'idf.py flash' uses v1.1
     mkdir -p build
     cp -r build_v1/* build/ 2>/dev/null || true
-    echo ">> v1.1 build complete: build_v1/time-beacon-heltec-tracker-v1.1.bin (synced to build/)"
+    echo ">> v1.1 build complete: build_v1/$factory_bin"
 }
 
 build_v2() {
     echo "=========================================="
     echo " Building Heltec Wireless Tracker v2..."
     echo "=========================================="
+    local binfo
+    binfo="$(get_build_info)"
     idf.py -B build_v2 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.v2" build
-    (cd build_v2 && esptool.py --chip esp32s3 merge_bin -o time-beacon-heltec-tracker-v2.bin @flash_args)
-    echo ">> v2 build complete: build_v2/time-beacon-heltec-tracker-v2.bin"
+
+    local factory_bin="time-beacon-heltec-wireless-tracker-v2-${binfo}.factory.bin"
+    local ota_bin="time-beacon-heltec-wireless-tracker-v2-${binfo}.bin"
+
+    (cd build_v2 && esptool.py --chip esp32s3 merge_bin -o "$factory_bin" @flash_args)
+    cp build_v2/heltec-tracker-ntp.bin "build_v2/$ota_bin"
+    # Also create canonical unversioned alias for web flasher
+    cp "build_v2/$factory_bin" build_v2/time-beacon-heltec-wireless-tracker-v2.factory.bin
+
+    echo ">> v2 build complete: build_v2/$factory_bin"
 }
 
 run_tests() {
@@ -131,8 +166,8 @@ case "$TARGET" in
         build_v2
         echo "=========================================="
         echo " Both targets built successfully!"
-        echo "   v1.1: build_v1/time-beacon-heltec-tracker-v1.1.bin"
-        echo "   v2:   build_v2/time-beacon-heltec-tracker-v2.bin"
+        echo "   Tracker (v1.1): build_v1/ (factory & ota)"
+        echo "   Tracker v2:     build_v2/ (factory & ota)"
         echo "=========================================="
         ;;
     flash)
