@@ -14,13 +14,14 @@ The GNSS subsystem provides Stratum-1 time synchronization and precision geograp
   - WiFi LoRa 32 V4: RX on GPIO 39, TX on GPIO 38, Reset on GPIO 42, Wakeup on GPIO 40.
 - **Power Rail Control (`PIN_VEXT_CTRL`)**: Active HIGH GPIO (GPIO 3 on Tracker v1.1/v2, GPIO 36 on WiFi LoRa 32 V4) gates external power to the GNSS module. Cut during deep sleep to eliminate quiescent draw.
 
-### 2. PPS Hardware Routing Differences
-- **Heltec Wireless Tracker v1.1 (`BOARD_HAS_GNSS_PPS 0`)**:
-  - The hardware 1PPS trace is unrouted on the v1.1 PCB.
-  - The time discipline engine relies on NMEA sentence arrival timing with calibrated UART transmission latency to lock system time.
-- **Heltec Wireless Tracker v2 & WiFi LoRa 32 V4 (`BOARD_HAS_GNSS_PPS 1`)**:
-  - Active hardware 1PPS trace routed to GPIO 36 (Tracker v2) or GPIO 41 (WiFi LoRa 32 V4).
-  - Configured as a GPIO positive-edge interrupt (`gpio_isr_handler_add()`) capturing `esp_timer_get_time()` with sub-microsecond precision at the top of every second.
+### 2. PPS Hardware Routing
+- **Heltec Wireless Tracker v1.1 and v2 (`BOARD_HAS_GNSS_PPS 1`)**:
+  - Active hardware 1PPS trace routed to GPIO 36 from the UC6580 GNSS module.
+  - Configured as a GPIO positive-edge interrupt (`gpio_isr_handler_add()`) capturing `esp_timer_get_time()` with sub-microsecond precision (< 1 μs) at the top of every second.
+- **WiFi LoRa 32 V4 (`BOARD_HAS_GNSS_PPS 1`)**:
+  - Active hardware 1PPS trace routed to GPIO 41 on the SH1.25-8P GNSS connector.
+- **Dynamic Fallback**:
+  - If 1PPS is disconnected or disabled in `config.ini` (`enable_pps = false`), the time discipline engine automatically falls back to software NMEA delay compensation.
 
 ---
 

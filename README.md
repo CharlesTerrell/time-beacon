@@ -46,8 +46,8 @@ Time Beacon firmware operates as a **Stratum-1 Reference Clock**. Disciplined by
 
 ## Supported Hardware
 
-- **Heltec Wireless Tracker v1.1**: ESP32-S3FN8, UC6580 GNSS, SX1262 LoRa, ST7735 0.96" SPI TFT (80x160), NMEA rollover discipline (unrouted PCB PPS).
-- **Heltec Wireless Tracker v2**: Adds active GNSS 1PPS GPIO interrupt discipline and RF Front-End Module (FEM PA).
+- **Heltec Wireless Tracker v1.1**: ESP32-S3FN8, UC6580 GNSS, SX1262 LoRa, ST7735 0.96" SPI TFT (80x160), active 1PPS GPIO 36 interrupt discipline.
+- **Heltec Wireless Tracker v2**: Adds RF Front-End Module (FEM PA).
 - **Heltec WiFi LoRa 32 V4** *(Experimental)*: ESP32-S3, SSD1306 0.96" I2C OLED (128x64), SX1262 LoRa with FEM PA, external GNSS header with 1PPS interrupt (select in `idf.py menuconfig`).
 - **Other ESP32 Boards** if equipped with similar hardware; some amount of porting could be necessary.
 
@@ -71,8 +71,8 @@ Install Time Beacon directly from your browser in under 60 seconds using Web Ser
 ### Option B: Pre-Compiled Binaries (Single-File Flash)
 Pre-merged firmware binaries are published for every build under **[GitHub Releases](https://github.com/CharlesTerrell/time-beacon/releases)**:
 
-- **`time-beacon-heltec-tracker-v1.1.bin`**: Heltec Wireless Tracker v1.1 (TFT 80x160, unrouted PPS)
-- **`time-beacon-heltec-tracker-v2.bin`**: Heltec Wireless Tracker v2 (TFT 80x160, active 1PPS interrupt & FEM PA)
+- **`time-beacon-heltec-tracker-v1.1.bin`**: Heltec Wireless Tracker v1.1 (TFT 80x160, active 1PPS, direct SX1262)
+- **`time-beacon-heltec-tracker-v2.bin`**: Heltec Wireless Tracker v2 (TFT 80x160, active 1PPS, FEM PA)
 
 Each file contains the complete image (bootloader, partition table, and application merged together). Flash it to offset `0x0`:
 

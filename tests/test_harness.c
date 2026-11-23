@@ -409,7 +409,7 @@ static void test_time_sync_pps_and_offset(void) {
     TEST_ASSERT(pps_sec == epoch_sec, "Whole second unchanged within 75ms window");
     TEST_ASSERT(pps_usec == 75000, "Microsecond matches elapsed time since 1PPS tick");
 
-    // Case 2: Hardware 1PPS Absent (Stock v1.1 Fallback)
+    // Case 2: Hardware 1PPS Absent (Software NMEA Offset Fallback)
     // '$' character arrived 60ms after top_of_sec (anchor_esp_time_us = top_of_sec_us + 60000).
     // NMEA parsing finishes 15ms later at now_us = top_of_sec_us + 75000.
     // Configured offset is 60ms (60000 us).

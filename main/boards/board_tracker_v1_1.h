@@ -4,7 +4,7 @@
 
 #define BOARD_HARDWARE_NAME     "Heltec Wireless Tracker v1.1"
 #define BOARD_HARDWARE_REV      1
-#define BOARD_HAS_GNSS_PPS      0  /* PPS line is unrouted on v1.1 PCB */
+#define BOARD_HAS_GNSS_PPS      1  /* Active GNSS 1PPS on GPIO 36 */
 #define BOARD_HAS_TFT_ST7735    1
 #define BOARD_HAS_OLED_SSD1306  0
 #define BOARD_HAS_FEM_PA        0
@@ -16,7 +16,7 @@
 #define PIN_GNSS_RX             GPIO_NUM_33  /* ESP32 RX <- UC6580 TX */
 #define PIN_GNSS_TX             GPIO_NUM_34  /* ESP32 TX -> UC6580 RX */
 #define PIN_GNSS_RST            GPIO_NUM_35  /* GNSS Reset */
-#define PIN_GNSS_PPS            GPIO_NUM_36  /* GNSS 1PPS (Unrouted on v1.1) */
+#define PIN_GNSS_PPS            GPIO_NUM_36  /* GNSS 1PPS */
 #define GNSS_UART_NUM           UART_NUM_1
 #define GNSS_DEFAULT_BAUD       115200
 
