@@ -114,38 +114,42 @@ Hold **USER / PRG** during the 2.5-second boot prompt to mount the device as a U
 
 ```ini
 [device]
-node_name = TimeBeacon        ; Advertised BLE and Meshtastic name
-position_precision = 18       ; Masked position bits (18 ~= 1.5km fuzz, 32 = exact)
+node_name = TimeBeacon        ; Advertised BLE and Meshtastic name (max 32 chars)
+country = US                  ; Regulatory ISO country code (WiFi channels & default LoRa freq)
+led_peak_percent = 50         ; Peak brightness of status LED breathing pulse (0-100%)
+enable_pps = true             ; Hardware 1PPS discipline (true = < 1us accuracy, false = NMEA)
+nmea_offset_ms = 60           ; Software NMEA delay offset in ms when 1PPS absent/disabled
+usb_nmea_output = false       ; Stream raw NMEA sentences over USB console instead of logs
 
-[wifi]
-enable = true                 ; Enable Wi-Fi client connection
-ssid = MyNetwork              ; Wi-Fi network SSID
-password = SecretKey          ; Wi-Fi WPA2/WPA3 passphrase
-use_static_ip = false         ; Use static IP configuration
-static_ip = 192.168.1.200     ; Static IP address
-static_gw = 192.168.1.1       ; Default gateway
-static_netmask = 255.255.255.0; Subnet mask
-static_dns = 1.1.1.1          ; Primary DNS server
-country_code = US             ; 2-letter regulatory country code
+[services]
+wifi = true                   ; Enable Wi-Fi network connection
+ntp = true                    ; Enable Stratum-1 UDP NTP server on port 123
+bluetooth = true              ; Enable BLE Current Time Service (CTS 0x1805)
+meshtastic = false            ; Enable LoRa Meshtastic POSITION & TELEMETRY broadcasts
+position_precision = 18       ; Meshtastic position precision (18 = ~90m fuzzy privacy, 32 = exact)
+ble_battery = true            ; Standard BLE Battery Service (BAS 0x180F) telemetry
+lora_power = true             ; LoRa power telemetry broadcast (battery & solar bus mV)
 
-[ntp]
-enable = true                 ; Enable Stratum-1 UDP NTP time server
-
-[ble]
-enable = true                 ; Enable Bluetooth Low Energy Current Time Service
-enable_battery = true         ; Expose standard BLE Battery Service (BAS)
-
-[meshtastic]
-enable = false                ; Enable LoRa 2-phase Meshtastic time beacons
-freq_hz = 906875000           ; Base frequency (906.875 MHz US915 LongFast)
+[lora]
+lora_freq = 906875000         ; LoRa carrier frequency in Hz (default: regional plan for country)
+tx_power = 22                 ; LoRa RF transmit power in dBm (0 to 22 dBm)
 
 [display]
 flip = false                  ; Invert display 180 degrees
-led_peak_percent = 50         ; Peak brightness of status LED breathing pulse (0-100%)
 
-[debug]
-usb_nmea_output = false       ; Stream raw NMEA sentences over USB Serial/JTAG
+[wifi]
+ssid = MyNetwork              ; 2.4 GHz Wi-Fi network SSID
+password = SecretKey          ; Wi-Fi WPA2/WPA3 passphrase
+
+[network]
+dhcp = true                   ; true = dynamic IP from router; false = static IP below
+ip = 192.168.1.200            ; Static IP address (active when dhcp = false)
+gateway = 192.168.1.1         ; Static gateway
+netmask = 255.255.255.0       ; Static subnet mask
+dns = 1.1.1.1                 ; Static DNS server
 ```
+
+For alternative section and key aliases accepted by the parser, see [Boot Selector & Operating Modes](docs/plan/boot_selector.md).
 
 ### Runtime Gestures
 - **Short Press (Screen Sleeping)**: Wakes backlight.
