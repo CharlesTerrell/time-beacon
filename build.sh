@@ -57,10 +57,11 @@ build_v1() {
     echo " Building Heltec Wireless Tracker v1.1..."
     echo "=========================================="
     idf.py -B build_v1 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.v1_1" build
+    (cd build_v1 && esptool.py --chip esp32s3 merge_bin -o time-beacon-heltec-tracker-v1.1.bin @flash_args)
     # Also update default build/ so standard 'idf.py flash' uses v1.1
     mkdir -p build
     cp -r build_v1/* build/ 2>/dev/null || true
-    echo ">> v1.1 build complete: build_v1/heltec-tracker-ntp.bin (synced to build/)"
+    echo ">> v1.1 build complete: build_v1/time-beacon-heltec-tracker-v1.1.bin (synced to build/)"
 }
 
 build_v2() {
@@ -68,7 +69,8 @@ build_v2() {
     echo " Building Heltec Wireless Tracker v2..."
     echo "=========================================="
     idf.py -B build_v2 -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.v2" build
-    echo ">> v2 build complete: build_v2/heltec-tracker-ntp.bin"
+    (cd build_v2 && esptool.py --chip esp32s3 merge_bin -o time-beacon-heltec-tracker-v2.bin @flash_args)
+    echo ">> v2 build complete: build_v2/time-beacon-heltec-tracker-v2.bin"
 }
 
 run_tests() {
@@ -129,8 +131,8 @@ case "$TARGET" in
         build_v2
         echo "=========================================="
         echo " Both targets built successfully!"
-        echo "   v1.1: build_v1/heltec-tracker-ntp.bin"
-        echo "   v2:   build_v2/heltec-tracker-ntp.bin"
+        echo "   v1.1: build_v1/time-beacon-heltec-tracker-v1.1.bin"
+        echo "   v2:   build_v2/time-beacon-heltec-tracker-v2.bin"
         echo "=========================================="
         ;;
     flash)

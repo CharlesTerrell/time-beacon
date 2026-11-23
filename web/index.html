@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Beacon - Web Firmware Installer</title>
+  <script
+    type="module"
+    src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+  ></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #238636;
+      --accent-hover: #2ea043;
+      --link: #58a6ff;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      max-width: 560px;
+      width: 100%;
+      padding: 32px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .tagline {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .form-group {
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    select {
+      width: 100%;
+      background-color: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+    select:focus {
+      border-color: var(--link);
+    }
+    .action-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin: 24px 0;
+      padding: 20px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    esp-web-install-button {
+      display: block;
+    }
+    esp-web-install-button button[slot="activate"] {
+      background-color: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    esp-web-install-button button[slot="activate"]:hover {
+      background-color: var(--accent-hover);
+    }
+    .instructions {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+    .instructions ol {
+      padding-left: 20px;
+      margin: 10px 0;
+    }
+    .instructions a {
+      color: var(--link);
+      text-decoration: none;
+    }
+    .instructions a:hover {
+      text-decoration: underline;
+    }
+    .notice {
+      background-color: rgba(56, 139, 253, 0.1);
+      border: 1px solid rgba(56, 139, 253, 0.4);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🛰️ Time Beacon</h1>
+    <p class="tagline">Browser firmware installer for Heltec Wireless Tracker boards. No dev tools, command line, or Python required.</p>
+
+    <div class="notice">
+      Requires <strong>Google Chrome</strong>, <strong>Microsoft Edge</strong>, or another Web Serial-compatible browser on desktop.
+    </div>
+
+    <div class="form-group">
+      <label for="board-select">Select Hardware Model:</label>
+      <select id="board-select">
+        <option value="manifest-tracker-v1.1.json">Heltec Wireless Tracker v1.1 (TFT Display)</option>
+        <option value="manifest-tracker-v2.json">Heltec Wireless Tracker v2 (TFT Display + 1PPS GPIO)</option>
+      </select>
+    </div>
+
+    <div class="action-container">
+      <esp-web-install-button id="install-btn" manifest="manifest-tracker-v1.1.json">
+        <button slot="activate">Connect & Install</button>
+        <span slot="unsupported">Web Serial is not supported in this browser. Please use Chrome or Edge on desktop.</span>
+      </esp-web-install-button>
+    </div>
+
+    <div class="instructions">
+      <strong>Quick Instructions:</strong>
+      <ol>
+        <li>Connect your Heltec Tracker to your PC using a high-quality USB-C data cable.</li>
+        <li>Select your board version from the dropdown above.</li>
+        <li>Click <strong>Connect & Install</strong> and select the serial port from the browser prompt.</li>
+        <li>If the device isn't recognized, hold the <strong>USER / PRG</strong> button while connecting the USB cable to enter the ROM bootloader.</li>
+      </ol>
+      <p>Manual downloads & release notes: <a href="https://github.com/CharlesTerrell/time-beacon/releases" target="_blank" rel="noopener">GitHub Releases</a> | Source code: <a href="https://github.com/CharlesTerrell/time-beacon" target="_blank" rel="noopener">Repository</a></p>
+    </div>
+  </div>
+
+  <script>
+    const select = document.getElementById('board-select');
+    const installBtn = document.getElementById('install-btn');
+
+    select.addEventListener('change', () => {
+      installBtn.setAttribute('manifest', select.value);
+    });
+  </script>
+</body>
+</html>

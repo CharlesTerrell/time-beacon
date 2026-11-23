@@ -55,29 +55,59 @@ NOTE: This has has been tested on real hardware only with Tracker v1.1 so far. I
 
 ---
 
-## Quick Start
+## Installation & Quick Start
 
-### 1. Prerequisites
+### Option A: Web Flasher (No Developer Tools Required)
+Install Time Beacon directly from your browser in under 60 seconds using Web Serial (requires **Google Chrome**, **Microsoft Edge**, or Opera on desktop):
+
+👉 **[Launch Time Beacon Web Installer](https://charlesterrell.github.io/time-beacon/)**
+
+1. Connect your Heltec Tracker to your PC with a USB-C data cable.
+2. Select your board version from the dropdown (**Tracker v1.1** or **Tracker v2**).
+3. Click **Connect & Install** and choose the serial port.
+
+---
+
+### Option B: Pre-Compiled Binaries (Single-File Flash)
+Pre-merged firmware binaries are published for every build under **[GitHub Releases](https://github.com/CharlesTerrell/time-beacon/releases)**:
+
+- **`time-beacon-heltec-tracker-v1.1.bin`**: Heltec Wireless Tracker v1.1 (TFT 80x160, unrouted PPS)
+- **`time-beacon-heltec-tracker-v2.bin`**: Heltec Wireless Tracker v2 (TFT 80x160, active 1PPS interrupt & FEM PA)
+
+Each file contains the complete image (bootloader, partition table, and application merged together). Flash it to offset `0x0`:
+
+- **Via [Espressif Online Flasher](https://espressif.github.io/esptool-js/)**: Connect in Chrome, add the `.bin` at address `0x0`, and click **Program**.
+- **Via `esptool` CLI**:
+  ```bash
+  esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 write_flash 0x0 time-beacon-heltec-tracker-v1.1.bin
+  ```
+
+---
+
+### Option C: Build from Source (Developers)
+
+#### 1. Prerequisites
 - Linux / macOS development environment
 - ESP-IDF **v5.x** or **v6.x**
 - Standard tools: Python 3, `git`, `cmake`, `ninja`
 
-### 2. Activate Build Environment
+#### 2. Activate Build Environment
 Source the helper script to activate ESP-IDF:
 ```bash
 source tools/idf_env.sh
 ```
 
-### 3. Build Firmware
-Build both targets or a single target:
+#### 3. Build Firmware
+Build both board targets or a single target:
 ```bash
 ./build.sh all
 # or individual target:
 ./build.sh v1.1
 ./build.sh v2
 ```
+This produces both the component binaries and the ready-to-flash merged binaries (`build_v1/time-beacon-heltec-tracker-v1.1.bin` and `build_v2/time-beacon-heltec-tracker-v2.bin`).
 
-### 4. Run Host Unit Tests
+#### 4. Run Host Unit Tests
 Run native host tests (NMEA parsing, time discipline, INI parsing, Wi-Fi power scaling, packet encoders):
 ```bash
 ./build.sh test
@@ -85,7 +115,7 @@ Run native host tests (NMEA parsing, time discipline, INI parsing, Wi-Fi power s
 ./tests/run_tests.sh
 ```
 
-### 5. Memory & Footprint Audit
+#### 5. Memory & Footprint Audit
 Audit flash, DRAM, and IRAM usage:
 ```bash
 ./build.sh size v1.1
@@ -94,7 +124,7 @@ Audit flash, DRAM, and IRAM usage:
 ./build.sh size v1.1 components
 ```
 
-### 6. Flash to Device
+#### 6. Flash to Device
 Flash over USB-C:
 ```bash
 ./build.sh flash v1.1
