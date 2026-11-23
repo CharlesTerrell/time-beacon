@@ -1,26 +1,29 @@
-# Task: Update Tracker v1.1 PPS definition and documentation
+# Task: Configure Hybrid Nightly Builds with Commit Check in GitHub Actions
 
 ## Task Goal
-Update `main/boards/board_tracker_v1_1.h` (`BOARD_HAS_GNSS_PPS 1`), `README.md`, `docs/plan/gps_time_position.md`, `web/index.html`, and `tests/test_harness.c` to accurately reflect that hardware testing verified 1PPS is wired to GPIO 36 on Heltec Wireless Tracker v1.1.
+Configure `.github/workflows/ci.yml` so that:
+1. Fast host unit tests run on `push` and `pull_request` (as well as scheduled/manual triggers).
+2. The heavy firmware builds, release uploads, and GitHub Pages deployments run only on:
+   - Scheduled nightly runs (`schedule: - cron: '0 6 * * *'`),
+   - Manual UI triggers (`workflow_dispatch`), or
+   - Version tags (`refs/tags/v*`).
+3. For scheduled nightly runs, check whether any commits have been made within the last 24 hours. If no commits occurred, skip building and publishing.
+4. Name the rolling pre-release tag `nightly` (title "Time Beacon (Nightly Build)"), while keeping official version tags (`v*`) intact.
+5. Update `README.md` release links if necessary.
 
 ## Allowed Files to Edit
 - CURRENT_TASK.md
-- main/boards/board_tracker_v1_1.h
+- .github/workflows/ci.yml
 - README.md
-- docs/plan/gps_time_position.md
-- web/index.html
-- tests/test_harness.c
 
 ## Verification Command
 ```bash
-./build.sh test && ./build.sh v1.1
+./tests/run_tests.sh && python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
 ```
 
 ## Checklist
-- [x] Set `BOARD_HAS_GNSS_PPS 1` and remove unrouted comments in `main/boards/board_tracker_v1_1.h`.
-- [x] Update README.md hardware and binary descriptions.
-- [x] Update `docs/plan/gps_time_position.md` PPS hardware routing section.
-- [x] Update `web/index.html` board descriptions.
-- [x] Update `tests/test_harness.c` comment.
+- [x] Update `CURRENT_TASK.md` with goals and allowed files.
+- [x] Update `.github/workflows/ci.yml` with `schedule` and `workflow_dispatch` triggers, commit freshness check, and `nightly` tag name.
+- [x] Update README references to releases if necessary.
 - [x] Run verification command with zero errors and zero warnings.
-- [x] Mark checklist items complete and commit changes per AGENTS.md rules.
+- [x] Commit changes per AGENTS.md rules.

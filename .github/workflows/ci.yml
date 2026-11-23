@@ -17,6 +17,10 @@ on:
       - 'LICENSE'
       - '.gitignore'
       - '.gitattributes'
+  schedule:
+    # Nightly build at 06:00 UTC (midnight MST)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -34,8 +38,41 @@ jobs:
       - name: Run host test suite
         run: ./tests/run_tests.sh
 
+  check-nightly-needed:
+    name: Check Nightly Commit Activity
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+      - name: Determine if build is required
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "Checking commits in last 24h via GitHub API..."
+            COMMITS_COUNT=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/commits?since=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)&per_page=1" \
+              | jq '. | length')
+
+            if [ "$COMMITS_COUNT" -gt 0 ]; then
+              echo "Found $COMMITS_COUNT new commit(s) in the last 24 hours. Proceeding with nightly build."
+              echo "should_build=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "No commits found in the last 24 hours. Skipping scheduled build."
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+            fi
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "Manual dispatch or release tag detected. Proceeding with build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Push or PR event: host tests only. Firmware build skipped."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-firmware:
     name: Build ESP32-S3 Targets
+    needs: [host-tests, check-nightly-needed]
+    if: needs.check-nightly-needed.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     container:
       image: espressif/idf:v5.3.2
@@ -63,31 +100,27 @@ jobs:
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'latest' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Time Beacon (Latest Build)' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'nightly' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Time Beacon (Nightly Build)' }}
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |
             build_v1/time-beacon-heltec-tracker-v1.1.bin
             build_v2/time-beacon-heltec-tracker-v2.bin
 
       - name: Prepare Web Installer Directory
-        if: github.ref == 'refs/heads/main'
         run: |
           mkdir -p web
           cp build_v1/time-beacon-heltec-tracker-v1.1.bin web/
           cp build_v2/time-beacon-heltec-tracker-v2.bin web/
 
       - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: web/
 
   deploy-pages:
     name: Deploy Web Installer to GitHub Pages
-    if: github.ref == 'refs/heads/main'
     needs: build-firmware
     runs-on: ubuntu-latest
     environment:
