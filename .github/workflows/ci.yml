@@ -110,10 +110,9 @@ jobs:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'nightly' }}
           name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Time Beacon (Nightly Build)' }}
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          make_latest: false
           files: |
-            build_v1/time-beacon-heltec-wireless-tracker*.factory.bin
             build_v1/time-beacon-heltec-wireless-tracker*.bin
-            build_v2/time-beacon-heltec-wireless-tracker-v2*.factory.bin
             build_v2/time-beacon-heltec-wireless-tracker-v2*.bin
 
       - name: Prepare Web Installer Directory (v6.1 primary)
