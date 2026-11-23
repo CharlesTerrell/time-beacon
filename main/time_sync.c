@@ -64,6 +64,22 @@ esp_err_t time_sync_init(void) {
     return ESP_OK;
 }
 
+// Convert UTC struct tm to Unix epoch seconds without relying on non-standard/non-portable timegm()
+static time_t utc_tm_to_epoch(const struct tm *tm) {
+    int y = tm->tm_year + 1900;
+    int m = tm->tm_mon + 1;
+    if (m <= 2) {
+        y -= 1;
+        m += 12;
+    }
+    int64_t era = (y >= 0 ? y : y - 399) / 400;
+    unsigned yoe = (unsigned)(y - era * 400);
+    unsigned doy = (153 * (m - 3) + 2) / 5 + tm->tm_mday - 1;
+    unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    int64_t days = era * 146097 + (int64_t)doe - 719468;
+    return (time_t)(days * 86400LL + tm->tm_hour * 3600LL + tm->tm_min * 60LL + tm->tm_sec);
+}
+
 void time_sync_update_gnss(const nmea_time_t *time_data, int64_t anchor_esp_time_us) {
     if (time_data == NULL || !time_data->fix_valid) {
         return;
@@ -78,7 +94,7 @@ void time_sync_update_gnss(const nmea_time_t *time_data, int64_t anchor_esp_time
     tm.tm_sec = time_data->second;
     tm.tm_isdst = 0;
 
-    time_t epoch_sec = timegm(&tm);
+    time_t epoch_sec = utc_tm_to_epoch(&tm);
     int64_t now_us = esp_timer_get_time();
     int64_t last_pps_us = s_last_pps_esp_time_us;
     int64_t pps_age_us = now_us - last_pps_us;

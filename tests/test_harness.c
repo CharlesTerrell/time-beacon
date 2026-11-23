@@ -438,6 +438,35 @@ static void test_time_sync_pps_and_offset(void) {
     uint32_t ref_id_pps = 0x50505300; // "PPS\0"
     TEST_ASSERT(ref_id_gps == 0x47505300, "NTP GPS RefID corresponds to ASCII 'GPS\\0'");
     TEST_ASSERT(ref_id_pps == 0x50505300, "NTP PPS RefID corresponds to ASCII 'PPS\\0'");
+
+    // Case 5: Portable UTC to Unix epoch conversion (avoids non-standard timegm)
+    struct tm tm_test = {0};
+    // 1970-01-01 00:00:00 UTC == 0
+    tm_test.tm_year = 70; tm_test.tm_mon = 0; tm_test.tm_mday = 1;
+    tm_test.tm_hour = 0; tm_test.tm_min = 0; tm_test.tm_sec = 0;
+    // Calculation matching utc_tm_to_epoch in time_sync.c
+    int y = tm_test.tm_year + 1900, m = tm_test.tm_mon + 1;
+    if (m <= 2) { y -= 1; m += 12; }
+    int64_t era = (y >= 0 ? y : y - 399) / 400;
+    unsigned yoe = (unsigned)(y - era * 400);
+    unsigned doy = (153 * (m - 3) + 2) / 5 + tm_test.tm_mday - 1;
+    unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    int64_t days = era * 146097 + (int64_t)doe - 719468;
+    time_t ep1970 = (time_t)(days * 86400LL + tm_test.tm_hour * 3600LL + tm_test.tm_min * 60LL + tm_test.tm_sec);
+    TEST_ASSERT(ep1970 == 0, "UTC epoch for 1970-01-01 00:00:00 is 0");
+
+    // 2024-02-29 12:00:00 UTC (Leap day) == 1709208000
+    tm_test.tm_year = 124; tm_test.tm_mon = 1; tm_test.tm_mday = 29;
+    tm_test.tm_hour = 12; tm_test.tm_min = 0; tm_test.tm_sec = 0;
+    y = tm_test.tm_year + 1900; m = tm_test.tm_mon + 1;
+    if (m <= 2) { y -= 1; m += 12; }
+    era = (y >= 0 ? y : y - 399) / 400;
+    yoe = (unsigned)(y - era * 400);
+    doy = (153 * (m - 3) + 2) / 5 + tm_test.tm_mday - 1;
+    doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    days = era * 146097 + (int64_t)doe - 719468;
+    time_t ep2024 = (time_t)(days * 86400LL + tm_test.tm_hour * 3600LL + tm_test.tm_min * 60LL + tm_test.tm_sec);
+    TEST_ASSERT(ep2024 == 1709208000, "UTC epoch for 2024-02-29 12:00:00 (leap day) is 1709208000");
 }
 
 /* ========================================================================= */
