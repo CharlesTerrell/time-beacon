@@ -1,9 +1,41 @@
-# Time Beacon: Multi-Protocol Stratum-1 Time Server
+# Time Beacon: Multi-Protocol ESP32 Time Server
 
 [![CI](https://github.com/tachyon/time_beacon/actions/workflows/ci.yml/badge.svg)](https://github.com/tachyon/time_beacon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Time Beacon is an ESP32-S3 battery- or USB-powered **Stratum-1 Reference Clock**. Disciplined by GNSS/GPS and a Pulse-Per-Second (PPS) interrupt, it broadcasts precision time over three wireless protocols:
+## What Is This?
+
+Time Beacon is firmware that turns an inexpensive Heltec Wireless Tracker (or similarly equipped ESP32 board) into a pocket-sized GPS-backed time sync workhorse.
+
+It tracks the time to within a few milliseconds from GPS/GNSS satellites overhead. Then it offers that time to nearby devices as:
+
+- NTP over WiFi
+- Bluetooth LE CTS
+- Meshtastic telemetry, alternating between Long-Fast and Medium-Fast
+- NMEA over USB (like other GPS units)
+- Eyeballing the time on its wee little display
+
+It runs at full power from USB, but intelligently manages power draw when running from a battery.
+
+---
+
+## Why?
+
+In tne early 2000s I worked at a corporate data center. My team installed lots of network security devices, giving each a connection to a segregated LAN for control and telemetry. The LAN also had servers for administration and monitoring, and a remote access terminal wired in near my desk. Pretty cool, right?
+
+Soon we ran into a big problem: The things on this LAN all had different rates of clock drift. Surprisingly quickly they would get so far out of sync, logins from my terminal would fail due to handshake timing. Log data got noticeably out of alignment. Eventually we had to poke a hole in a firewall so a Windows 2000 server could reach NTP upstream. It then ran its own NTP server for the rest of the LAN. Embarrassing and a little scary - this was back when new Windows worms rampaged across corporate America every few weeks.
+
+In the years since then I've occasionally thought it would be nice to have accurate time without reliable internet access. But now we can do it! An cheap ESP32 board (currently $30-$40), some firmware, and a reasonably unobstructed sky (it works indoors for me) can provide time service more than accurate enough for system logs and authentication.
+
+The primary use case for this firmware is NTP over WiFi in a homelab or low-security workplace. BLE and Meshtastic are available for IoT devices that lack battery-backed clocks; Meshtastic is disabled by default to prevent unintentional radio traffic. For more secure environments (like my former employer) you'll have to disable all radio transmisson services, enable NMEA over USB, and plug it into a computer with a data-capable USB cable and compatible NTP server software.
+
+IMPORTANT: This firmware and the devices it runs on have been NOT certified for use in safety-critical environments! It especially has not been certified for aviation, nuclear power, hospitals, armed forces, etc. Obtaining such certification would probably require a full rewrite with a much higher budget, and most likely would target a different circuit board too. This is a hobbyist project intended to bring accurate time sync to the masses.
+
+---
+
+## What It Does (Technical Details)
+
+Time Beacon firmware operates as a **Stratum-1 Reference Clock**. Disciplined by GNSS/GPS and a Pulse-Per-Second (PPS) interrupt, it broadcasts precision time over three wireless protocols:
 
 1. **Wi-Fi NTP Server**: RFC 5905 NTPv4 / RFC 4330 SNTP server on UDP port 123 (DHCP or static IP, modem sleep, dynamic TX power scaling).
 2. **Bluetooth Low Energy (BLE)**: SIG Current Time Service (CTS `0x1805` / `0x2A2B`, 1/256s precision), Battery Service (BAS `0x180F`), Device Information Service (DIS `0x180A`), and 4-byte power telemetry (`0xFFE0`).
@@ -17,6 +49,9 @@ Time Beacon is an ESP32-S3 battery- or USB-powered **Stratum-1 Reference Clock**
 - **Heltec Wireless Tracker v1.1**: ESP32-S3FN8, UC6580 GNSS, SX1262 LoRa, ST7735 0.96" SPI TFT (80x160), NMEA rollover discipline (unrouted PCB PPS).
 - **Heltec Wireless Tracker v2**: Adds active GNSS 1PPS GPIO interrupt discipline and RF Front-End Module (FEM PA).
 - **Heltec WiFi LoRa 32 V4** *(Experimental)*: ESP32-S3, SSD1306 0.96" I2C OLED (128x64), SX1262 LoRa with FEM PA, external GNSS header with 1PPS interrupt (select in `idf.py menuconfig`).
+- **Other ESP32 Boards** if equipped with similar hardware; some amount of porting could be necessary.
+
+NOTE: This has has been tested on real hardware only with Tracker v1.1 so far. I intend to aquire a v2 board in the near future. If you have another kind of board that you would like to use, please be prepared to help with pinouts, specs, and testing.
 
 ---
 
@@ -159,3 +194,11 @@ Design specifications and wire formats in [`docs/plan/`](docs/plan/):
 ## License
 
 [MIT License](LICENSE)
+
+---
+
+## AI Disclosure
+
+This project is also a personal experiment in AI-assisted software development. Project design was a collaboration between the human and Google Gemini 3.8 Flash. Qwen 2.5 Coder running on a local server generated C code from a generated task list. Then Gemini and the human worked closely together for hardware testing and adding new features. Most (but not all) of the documentation came from Gemini as well. In particular, the extremely detailed technical docs were summarized by AI, but the narrative prose is mostly human.
+
+Contributions are welcome; however, automated spam is not. Any submissions must have a responsible human who is accountable for quality and 3rd party license compliance. 
